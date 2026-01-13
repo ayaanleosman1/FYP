@@ -1,5 +1,11 @@
-from fastapi import FastAPI
+import json
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+OUTPUTS_DIR = BASE_DIR / "outputs"
 
 app = FastAPI(title="UK Electricity Demand Forecast API")
 
@@ -26,24 +32,19 @@ def models():
         ]
     }
 
+def _read_json(filename: str):
+    path = OUTPUTS_DIR / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read {filename}: {e}")
+
 @app.get("/metrics")
 def metrics(model: str = "xgb", horizon: int = 24):
-    return {
-        "model": model,
-        "horizon_hours": horizon,
-        "mae": 950.2,
-        "rmse": 1310.7,
-        "smape": 3.9,
-    }
+    return _read_json(f"metrics_{model}_{horizon}.json")
 
 @app.get("/predict")
 def predict(model: str = "xgb", horizon: int = 24):
-    return {
-        "model": model,
-        "horizon_hours": horizon,
-        "series": [
-            {"t": "2026-01-01T00:00:00Z", "actual": 32000, "predicted": 31800},
-            {"t": "2026-01-01T01:00:00Z", "actual": 31000, "predicted": 31200},
-            {"t": "2026-01-01T02:00:00Z", "actual": 30500, "predicted": 30000},
-        ],
-    }
+    return _read_json(f"preds_{model}_{horizon}.json")

@@ -1,0 +1,9 @@
+{
+  "model": "xgb",
+  "horizon_hours": 24,
+  "series": [
+    {"t": "2026-01-01T00:00:00Z", "actual": 32000, "predicted": 31800},
+    {"t": "2026-01-01T01:00:00Z", "actual": 31000, "predicted": 31200},
+    {"t": "2026-01-01T02:00:00Z", "actual": 30500, "predicted": 30000}
+  ]
+}

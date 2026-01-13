@@ -1,0 +1,8 @@
+{
+  "model": "linear",
+  "horizon_hours": 24,
+  "mae": 293.67202907514735,
+  "rmse": 363.61977507823116,
+  "smape": 0.7825178670101438,
+  "note": "Synthetic data baseline to validate end-to-end pipeline. Replace with real ESO data next."
+}
