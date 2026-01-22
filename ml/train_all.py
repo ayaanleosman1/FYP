@@ -61,10 +61,17 @@ def parse_args():
         default=42,
         help="Random seed for reproducibility"
     )
+    parser.add_argument(
+        "--source", "-s",
+        type=str,
+        default="auto",
+        choices=["real", "synthetic", "auto"],
+        help="Data source: real (UK NESO data), synthetic, or auto (try real first)"
+    )
     return parser.parse_args()
 
 
-def train_model(model: str, granularity: str, days: int, seed: int) -> dict:
+def train_model(model: str, granularity: str, days: int, seed: int, source: str = "auto") -> dict:
     """Train a single model at a single granularity."""
     script = MODELS[model]
     script_path = Path(__file__).parent / script
@@ -78,6 +85,7 @@ def train_model(model: str, granularity: str, days: int, seed: int) -> dict:
         "--granularity", granularity,
         "--days", str(days),
         "--seed", str(seed),
+        "--source", source,
     ]
 
     result = {
@@ -114,6 +122,7 @@ def main():
     print("=" * 60)
     print(f"Models: {args.models}")
     print(f"Granularities: {args.granularities}")
+    print(f"Source: {args.source}")
     print(f"Parallel: {args.parallel}")
     print("=" * 60)
     print()
@@ -123,7 +132,7 @@ def main():
     for granularity in args.granularities:
         days = DAYS_PER_GRANULARITY[granularity]
         for model in args.models:
-            tasks.append((model, granularity, days, args.seed))
+            tasks.append((model, granularity, days, args.seed, args.source))
 
     results = []
 
@@ -142,12 +151,12 @@ def main():
                 print(f"[{status}] {result['model']} @ {result['granularity']}")
     else:
         # Run sequentially
-        for model, granularity, days, seed in tasks:
+        for model, granularity, days, seed, source in tasks:
             print(f"\n{'=' * 40}")
-            print(f"Training {model} @ {granularity} ({days} days)")
+            print(f"Training {model} @ {granularity} ({days} days, source={source})")
             print("=" * 40)
 
-            result = train_model(model, granularity, days, seed)
+            result = train_model(model, granularity, days, seed, source)
             results.append(result)
 
             if result["success"]:
