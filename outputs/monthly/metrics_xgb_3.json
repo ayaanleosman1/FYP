@@ -1,0 +1,10 @@
+{
+  "model": "xgb",
+  "granularity": "M",
+  "granularity_name": "monthly",
+  "horizon": 3,
+  "mae": 126391.56,
+  "rmse": 152915.75,
+  "smape": 0.6,
+  "mape": 0.6
+}

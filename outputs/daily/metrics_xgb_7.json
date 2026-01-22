@@ -1,0 +1,10 @@
+{
+  "model": "xgb",
+  "granularity": "D",
+  "granularity_name": "daily",
+  "horizon": 7,
+  "mae": 6863.29,
+  "rmse": 9372.4,
+  "smape": 0.99,
+  "mape": 0.98
+}

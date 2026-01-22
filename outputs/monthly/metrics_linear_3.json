@@ -1,0 +1,11 @@
+{
+  "model": "linear",
+  "granularity": "M",
+  "granularity_name": "monthly",
+  "horizon": 3,
+  "mae": 84212.19,
+  "rmse": 90334.53,
+  "smape": 0.4,
+  "mape": 0.4,
+  "note": "Baseline model to validate end-to-end pipeline."
+}

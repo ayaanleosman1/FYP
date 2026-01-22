@@ -1,0 +1,10 @@
+{
+  "model": "rf",
+  "granularity": "M",
+  "granularity_name": "monthly",
+  "horizon": 3,
+  "mae": 127817.28,
+  "rmse": 192116.27,
+  "smape": 0.61,
+  "mape": 0.6
+}

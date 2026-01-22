@@ -1,0 +1,11 @@
+{
+  "model": "linear",
+  "granularity": "H",
+  "granularity_name": "hourly",
+  "horizon": 24,
+  "mae": 1988.76,
+  "rmse": 2560.97,
+  "smape": 7.25,
+  "mape": 7.44,
+  "note": "Baseline model to validate end-to-end pipeline."
+}

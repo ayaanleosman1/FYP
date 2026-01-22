@@ -1,0 +1,11 @@
+{
+  "model": "linear",
+  "granularity": "W",
+  "granularity_name": "weekly",
+  "horizon": 4,
+  "mae": 467716.51,
+  "rmse": 927071.6,
+  "smape": 12.24,
+  "mape": 16.14,
+  "note": "Baseline model to validate end-to-end pipeline."
+}

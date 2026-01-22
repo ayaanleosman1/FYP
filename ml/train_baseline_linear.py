@@ -1,103 +1,141 @@
-import json
-from pathlib import Path
+"""
+Train Linear Regression baseline model for demand forecasting.
+
+Usage:
+    python train_baseline_linear.py                           # Default: hourly, horizon=24
+    python train_baseline_linear.py --granularity D           # Daily with default horizon
+    python train_baseline_linear.py --granularity D --horizon 14  # Daily, 14-day horizon
+    python train_baseline_linear.py --granularity W --days 730    # Weekly with 2 years of data
+"""
+
+import argparse
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-OUTPUTS_DIR = BASE_DIR / "outputs"
-OUTPUTS_DIR.mkdir(exist_ok=True)
+from utils import (
+    Granularity,
+    get_data_for_granularity,
+    build_features,
+    get_available_features,
+    compute_all_metrics,
+    save_outputs,
+    format_predictions_for_api,
+)
+from utils.data import train_test_split_temporal, get_recommended_days_for_granularity
 
-def smape(y_true, y_pred, eps=1e-8):
-    y_true = np.asarray(y_true, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    denom = (np.abs(y_true) + np.abs(y_pred) + eps) / 2.0
-    return float(np.mean(np.abs(y_true - y_pred) / denom) * 100.0)
 
-def make_synthetic_hourly_demand(n_days=60, seed=42):
-    rng = np.random.default_rng(seed)
-    idx = pd.date_range("2026-01-01", periods=n_days * 24, freq="H", tz="UTC")
-    df = pd.DataFrame(index=idx)
-    hour = df.index.hour
-    dow = df.index.dayofweek
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train Linear Regression baseline model")
+    parser.add_argument(
+        "--granularity", "-g",
+        type=str,
+        default="H",
+        choices=["H", "D", "W", "M", "Y"],
+        help="Forecast granularity: H=hourly, D=daily, W=weekly, M=monthly, Y=yearly"
+    )
+    parser.add_argument(
+        "--horizon", "-hz",
+        type=int,
+        default=None,
+        help="Forecast horizon in periods (default: granularity-specific)"
+    )
+    parser.add_argument(
+        "--days", "-d",
+        type=int,
+        default=None,
+        help="Days of training data (default: granularity-specific)"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility"
+    )
+    return parser.parse_args()
 
-    daily = 2500 * np.sin(2 * np.pi * hour / 24) + 8000
-    weekend = np.where(dow >= 5, -600, 0)
-    noise = rng.normal(0, 250, size=len(df))
 
-    df["demand"] = 30000 + daily + weekend + noise
-    return df
+def main():
+    args = parse_args()
 
-def build_features(df):
-    out = pd.DataFrame(index=df.index)
-    out["hour"] = df.index.hour
-    out["dow"] = df.index.dayofweek
-    out["month"] = df.index.month
+    # Parse granularity
+    granularity = Granularity.from_code(args.granularity)
+    config = granularity.config
 
-    # lag features (previous demand values)
-    out["lag_1"] = df["demand"].shift(1)
-    out["lag_24"] = df["demand"].shift(24)
+    # Set defaults based on granularity
+    horizon = args.horizon or config.default_horizon
+    n_days = args.days or get_recommended_days_for_granularity(granularity)
+    test_periods = config.default_test_periods
 
-    # simple rolling mean
-    out["roll_24_mean"] = df["demand"].shift(1).rolling(24).mean()
+    print(f"Training Linear Regression baseline model")
+    print(f"  Granularity: {config.name} ({config.code})")
+    print(f"  Horizon: {horizon} {config.name} periods")
+    print(f"  Data: {n_days} days")
+    print()
 
-    out["y"] = df["demand"]
-    out = out.dropna()
-    return out
+    # Get data at the specified granularity
+    df = get_data_for_granularity(n_days=n_days, granularity=granularity, seed=args.seed)
+    print(f"Data shape: {df.shape}")
+    print(f"Date range: {df.index.min()} to {df.index.max()}")
 
-def main(horizon=24):
-    df = make_synthetic_hourly_demand(n_days=90)
-    feat = build_features(df)
+    # Build features
+    feat = build_features(df, granularity=granularity)
+    print(f"Features shape after engineering: {feat.shape}")
 
-    X = feat[["hour", "dow", "month", "lag_1", "lag_24", "roll_24_mean"]]
-    y = feat["y"]
+    # Get available feature columns
+    feature_cols = get_available_features(feat, granularity)
+    print(f"Features: {feature_cols}")
 
-    # time-based split (last 7 days as test)
-    split_point = feat.index.max() - pd.Timedelta(days=7)
-    train_mask = feat.index <= split_point
-    test_mask = feat.index > split_point
+    # Prepare X and y
+    X = feat[feature_cols]
+    y = feat["demand"]
 
-    X_train, y_train = X[train_mask], y[train_mask]
-    X_test, y_test = X[test_mask], y[test_mask]
+    # Train/test split
+    train_df, test_df = train_test_split_temporal(feat, test_periods, granularity)
+    X_train = train_df[feature_cols]
+    y_train = train_df["demand"]
+    X_test = test_df[feature_cols]
+    y_test = test_df["demand"]
 
+    print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
+    print()
+
+    # Train model
     model = LinearRegression()
     model.fit(X_train, y_train)
+
+    # Predict
     y_pred = model.predict(X_test)
 
-    mae = float(mean_absolute_error(y_test, y_pred))
-    rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
-    smape_val = smape(y_test, y_pred)
+    # Compute metrics
+    metrics = compute_all_metrics(y_test.values, y_pred)
+    print("Metrics:")
+    for k, v in metrics.items():
+        print(f"  {k}: {v}")
+    print()
 
-    metrics = {
-        "model": "linear",
-        "horizon_hours": int(horizon),
-        "mae": mae,
-        "rmse": rmse,
-        "smape": smape_val,
-        "note": "Synthetic data baseline to validate end-to-end pipeline. Replace with real ESO data next."
+    # Prepare predictions for output
+    test_df = test_df.copy()
+    test_df["predicted"] = y_pred
+    predictions = format_predictions_for_api(test_df, actual_col="demand", pred_col="predicted")
+
+    # Save outputs
+    extra_metrics = {
+        "note": "Baseline model to validate end-to-end pipeline."
     }
+    metrics_path, preds_path = save_outputs(
+        granularity=granularity,
+        model="linear",
+        horizon=horizon,
+        metrics=metrics,
+        predictions=predictions,
+        extra_metrics=extra_metrics,
+    )
 
-    preds = {
-        "model": "linear",
-        "horizon_hours": int(horizon),
-        "series": [
-            {
-                "t": t.isoformat().replace("+00:00", "Z"),
-                "actual": float(a),
-                "predicted": float(p)
-            }
-            for t, a, p in zip(y_test.index, y_test.values, y_pred)
-        ],
-        "note": "Last 7 days of hourly predictions."
-    }
+    print("Saved:")
+    print(f"  {metrics_path}")
+    print(f"  {preds_path}")
 
-    (OUTPUTS_DIR / f"metrics_linear_{horizon}.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-    (OUTPUTS_DIR / f"preds_linear_{horizon}.json").write_text(json.dumps(preds, indent=2), encoding="utf-8")
-
-    print("WROTE:")
-    print(OUTPUTS_DIR / f"metrics_linear_{horizon}.json")
-    print(OUTPUTS_DIR / f"preds_linear_{horizon}.json")
 
 if __name__ == "__main__":
-    main(horizon=24)
+    main()

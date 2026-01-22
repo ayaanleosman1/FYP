@@ -1,0 +1,10 @@
+{
+  "model": "rf",
+  "granularity": "H",
+  "granularity_name": "hourly",
+  "horizon": 24,
+  "mae": 1996.3,
+  "rmse": 2544.05,
+  "smape": 7.2,
+  "mape": 7.41
+}

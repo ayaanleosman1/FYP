@@ -1,0 +1,10 @@
+{
+  "model": "xgb",
+  "granularity": "W",
+  "granularity_name": "weekly",
+  "horizon": 4,
+  "mae": 471098.92,
+  "rmse": 932798.2,
+  "smape": 12.31,
+  "mape": 16.25
+}

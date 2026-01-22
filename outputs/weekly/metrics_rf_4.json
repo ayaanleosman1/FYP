@@ -1,0 +1,10 @@
+{
+  "model": "rf",
+  "granularity": "W",
+  "granularity_name": "weekly",
+  "horizon": 4,
+  "mae": 468696.57,
+  "rmse": 930646.87,
+  "smape": 12.26,
+  "mape": 16.19
+}

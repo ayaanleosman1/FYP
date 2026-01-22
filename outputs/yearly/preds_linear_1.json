@@ -1,0 +1,13 @@
+{
+  "model": "linear",
+  "granularity": "Y",
+  "granularity_name": "yearly",
+  "horizon": 1,
+  "series": [
+    {
+      "t": "2030-01-01T00:00:00Z",
+      "actual": 247226819.14,
+      "predicted": 248404031.25
+    }
+  ]
+}

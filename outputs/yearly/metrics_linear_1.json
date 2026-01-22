@@ -1,0 +1,11 @@
+{
+  "model": "linear",
+  "granularity": "Y",
+  "granularity_name": "yearly",
+  "horizon": 1,
+  "mae": 1177212.11,
+  "rmse": 1177212.11,
+  "smape": 0.48,
+  "mape": 0.48,
+  "note": "Baseline model to validate end-to-end pipeline."
+}

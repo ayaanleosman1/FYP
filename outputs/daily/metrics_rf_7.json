@@ -1,0 +1,10 @@
+{
+  "model": "rf",
+  "granularity": "D",
+  "granularity_name": "daily",
+  "horizon": 7,
+  "mae": 6158.74,
+  "rmse": 8159.68,
+  "smape": 0.88,
+  "mape": 0.88
+}

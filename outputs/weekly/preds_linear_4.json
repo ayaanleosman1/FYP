@@ -1,0 +1,28 @@
+{
+  "model": "linear",
+  "granularity": "W",
+  "granularity_name": "weekly",
+  "horizon": 4,
+  "series": [
+    {
+      "t": "2027-12-13T00:00:00Z",
+      "actual": 4765805.71,
+      "predicted": 4764447.85
+    },
+    {
+      "t": "2027-12-20T00:00:00Z",
+      "actual": 4768106.91,
+      "predicted": 4763353.92
+    },
+    {
+      "t": "2027-12-27T00:00:00Z",
+      "actual": 4775503.91,
+      "predicted": 4764854.73
+    },
+    {
+      "t": "2028-01-03T00:00:00Z",
+      "actual": 2887506.13,
+      "predicted": 4741612.15
+    }
+  ]
+}

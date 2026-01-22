@@ -1,98 +1,141 @@
-import json
-from pathlib import Path
+"""
+Train Random Forest model for demand forecasting.
+
+Usage:
+    python train_rf.py                           # Default: hourly, horizon=24
+    python train_rf.py --granularity D           # Daily with default horizon
+    python train_rf.py --granularity D --horizon 14  # Daily, 14-day horizon
+    python train_rf.py --granularity W --days 730    # Weekly with 2 years of data
+"""
+
+import argparse
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-OUTPUTS_DIR = BASE_DIR / "outputs"
-OUTPUTS_DIR.mkdir(exist_ok=True)
+from utils import (
+    Granularity,
+    get_data_for_granularity,
+    build_features,
+    get_available_features,
+    compute_all_metrics,
+    save_outputs,
+    format_predictions_for_api,
+)
+from utils.data import train_test_split_temporal, get_recommended_days_for_granularity
 
-def smape(y_true, y_pred, eps=1e-8):
-    y_true = np.asarray(y_true, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    denom = (np.abs(y_true) + np.abs(y_pred) + eps) / 2.0
-    return float(np.mean(np.abs(y_true - y_pred) / denom) * 100.0)
 
-def make_synthetic_hourly_demand(n_days=90, seed=42):
-    rng = np.random.default_rng(seed)
-    idx = pd.date_range("2026-01-01", periods=n_days * 24, freq="H", tz="UTC")
-    df = pd.DataFrame(index=idx)
-    hour = df.index.hour
-    dow = df.index.dayofweek
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train Random Forest demand forecasting model")
+    parser.add_argument(
+        "--granularity", "-g",
+        type=str,
+        default="H",
+        choices=["H", "D", "W", "M", "Y"],
+        help="Forecast granularity: H=hourly, D=daily, W=weekly, M=monthly, Y=yearly"
+    )
+    parser.add_argument(
+        "--horizon", "-hz",
+        type=int,
+        default=None,
+        help="Forecast horizon in periods (default: granularity-specific)"
+    )
+    parser.add_argument(
+        "--days", "-d",
+        type=int,
+        default=None,
+        help="Days of training data (default: granularity-specific)"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility"
+    )
+    return parser.parse_args()
 
-    daily = 2500 * np.sin(2 * np.pi * hour / 24) + 8000
-    weekend = np.where(dow >= 5, -600, 0)
-    noise = rng.normal(0, 250, size=len(df))
 
-    df["demand"] = 30000 + daily + weekend + noise
-    return df
+def main():
+    args = parse_args()
 
-def build_features(df):
-    out = pd.DataFrame(index=df.index)
-    out["hour"] = df.index.hour
-    out["dow"] = df.index.dayofweek
-    out["month"] = df.index.month
-    out["lag_1"] = df["demand"].shift(1)
-    out["lag_24"] = df["demand"].shift(24)
-    out["roll_24_mean"] = df["demand"].shift(1).rolling(24).mean()
-    out["y"] = df["demand"]
-    return out.dropna()
+    # Parse granularity
+    granularity = Granularity.from_code(args.granularity)
+    config = granularity.config
 
-def main(horizon=24):
-    df = make_synthetic_hourly_demand(n_days=90)
-    feat = build_features(df)
+    # Set defaults based on granularity
+    horizon = args.horizon or config.default_horizon
+    n_days = args.days or get_recommended_days_for_granularity(granularity)
+    test_periods = config.default_test_periods
 
-    X = feat[["hour", "dow", "month", "lag_1", "lag_24", "roll_24_mean"]]
-    y = feat["y"]
+    print(f"Training Random Forest model")
+    print(f"  Granularity: {config.name} ({config.code})")
+    print(f"  Horizon: {horizon} {config.name} periods")
+    print(f"  Data: {n_days} days")
+    print()
 
-    split_point = feat.index.max() - pd.Timedelta(days=7)
-    train_mask = feat.index <= split_point
-    test_mask = feat.index > split_point
+    # Get data at the specified granularity
+    df = get_data_for_granularity(n_days=n_days, granularity=granularity, seed=args.seed)
+    print(f"Data shape: {df.shape}")
+    print(f"Date range: {df.index.min()} to {df.index.max()}")
 
-    X_train, y_train = X[train_mask], y[train_mask]
-    X_test, y_test = X[test_mask], y[test_mask]
+    # Build features
+    feat = build_features(df, granularity=granularity)
+    print(f"Features shape after engineering: {feat.shape}")
 
+    # Get available feature columns
+    feature_cols = get_available_features(feat, granularity)
+    print(f"Features: {feature_cols}")
+
+    # Prepare X and y
+    X = feat[feature_cols]
+    y = feat["demand"]
+
+    # Train/test split
+    train_df, test_df = train_test_split_temporal(feat, test_periods, granularity)
+    X_train = train_df[feature_cols]
+    y_train = train_df["demand"]
+    X_test = test_df[feature_cols]
+    y_test = test_df["demand"]
+
+    print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
+    print()
+
+    # Train model
     model = RandomForestRegressor(
         n_estimators=300,
-        random_state=42,
-        n_jobs=-1
+        random_state=args.seed,
+        n_jobs=-1,
     )
     model.fit(X_train, y_train)
+
+    # Predict
     y_pred = model.predict(X_test)
 
-    mae = float(mean_absolute_error(y_test, y_pred))
-    rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
-    smape_val = smape(y_test, y_pred)
+    # Compute metrics
+    metrics = compute_all_metrics(y_test.values, y_pred)
+    print("Metrics:")
+    for k, v in metrics.items():
+        print(f"  {k}: {v}")
+    print()
 
-    metrics = {
-        "model": "rf",
-        "horizon_hours": int(horizon),
-        "mae": mae,
-        "rmse": rmse,
-        "smape": smape_val
-    }
+    # Prepare predictions for output
+    test_df = test_df.copy()
+    test_df["predicted"] = y_pred
+    predictions = format_predictions_for_api(test_df, actual_col="demand", pred_col="predicted")
 
-    preds = {
-        "model": "rf",
-        "horizon_hours": int(horizon),
-        "series": [
-            {
-                "t": t.isoformat().replace("+00:00", "Z"),
-                "actual": float(a),
-                "predicted": float(p)
-            }
-            for t, a, p in zip(y_test.index, y_test.values, y_pred)
-        ]
-    }
+    # Save outputs
+    metrics_path, preds_path = save_outputs(
+        granularity=granularity,
+        model="rf",
+        horizon=horizon,
+        metrics=metrics,
+        predictions=predictions,
+    )
 
-    (OUTPUTS_DIR / f"metrics_rf_{horizon}.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-    (OUTPUTS_DIR / f"preds_rf_{horizon}.json").write_text(json.dumps(preds, indent=2), encoding="utf-8")
+    print("Saved:")
+    print(f"  {metrics_path}")
+    print(f"  {preds_path}")
 
-    print("WROTE:")
-    print(OUTPUTS_DIR / f"metrics_rf_{horizon}.json")
-    print(OUTPUTS_DIR / f"preds_rf_{horizon}.json")
 
 if __name__ == "__main__":
-    main(horizon=24)
+    main()
