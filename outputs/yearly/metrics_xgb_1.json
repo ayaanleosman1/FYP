@@ -3,8 +3,8 @@
   "granularity": "Y",
   "granularity_name": "yearly",
   "horizon": 1,
-  "mae": 991228.86,
-  "rmse": 991228.86,
-  "smape": 0.4,
-  "mape": 0.4
+  "mae": 16991995.5,
+  "rmse": 16991995.5,
+  "smape": 200.0,
+  "mape": 100.0
 }

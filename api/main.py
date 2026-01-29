@@ -11,6 +11,8 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from anthropic import Anthropic
 
 # Add ml directory to path for imports
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +27,9 @@ from utils.io import (
 )
 
 OUTPUTS_DIR = BASE_DIR / "outputs"
+
+# Initialize Anthropic client (uses ANTHROPIC_API_KEY env var)
+anthropic_client = Anthropic()
 
 app = FastAPI(
     title="UK Electricity Demand Forecast API",
@@ -260,3 +265,57 @@ def predict_aggregated(
         "note": "On-the-fly aggregation of hourly predictions. For better accuracy, use natively trained models.",
         "series": aggregated_series,
     }
+
+
+# ============================================
+# Chat Endpoint
+# ============================================
+
+class ChatRequest(BaseModel):
+    message: str
+    context: dict = {}  # Optional: current view data
+
+
+class ChatResponse(BaseModel):
+    response: str
+    model: str = "claude-sonnet-4-20250514"
+
+
+def build_system_prompt(context: dict) -> str:
+    """Build system prompt with optional dashboard context."""
+    base_prompt = """You are an AI assistant for a UK electricity demand forecasting dashboard.
+
+You help users understand:
+- Electricity demand forecasts and predictions
+- Model performance metrics (MAE, RMSE, SMAPE, MAPE)
+- Comparisons between XGBoost, Random Forest, and Linear Regression models
+- UK National Grid demand patterns
+
+Data source: National Grid ESO/NESO historic demand data.
+Demand values are in megawatts (MW) for hourly or megawatt-hours (MWh) for aggregated periods.
+
+Be concise and helpful. Use the context provided about the current view when relevant."""
+
+    if context:
+        base_prompt += f"\n\nCurrent dashboard context:\n{json.dumps(context, indent=2)}"
+
+    return base_prompt
+
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
+    """
+    Chat with AI assistant about electricity demand forecasting.
+    """
+    # Build system prompt with data context
+    system_prompt = build_system_prompt(request.context)
+
+    # Call Claude API
+    message = anthropic_client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=1024,
+        system=system_prompt,
+        messages=[{"role": "user", "content": request.message}]
+    )
+
+    return ChatResponse(response=message.content[0].text)

@@ -52,6 +52,13 @@ def parse_args():
         default=42,
         help="Random seed for reproducibility"
     )
+    parser.add_argument(
+        "--source", "-s",
+        type=str,
+        default="auto",
+        choices=["real", "synthetic", "auto"],
+        help="Data source: real (UK NESO data), synthetic, or auto (try real first)"
+    )
     return parser.parse_args()
 
 
@@ -71,10 +78,11 @@ def main():
     print(f"  Granularity: {config.name} ({config.code})")
     print(f"  Horizon: {horizon} {config.name} periods")
     print(f"  Data: {n_days} days")
+    print(f"  Source: {args.source}")
     print()
 
     # Get data at the specified granularity
-    df = get_data_for_granularity(n_days=n_days, granularity=granularity, seed=args.seed)
+    df = get_data_for_granularity(n_days=n_days, granularity=granularity, seed=args.seed, source=args.source)
     print(f"Data shape: {df.shape}")
     print(f"Date range: {df.index.min()} to {df.index.max()}")
 

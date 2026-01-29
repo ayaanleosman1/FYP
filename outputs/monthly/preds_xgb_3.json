@@ -3,21 +3,5 @@
   "granularity": "M",
   "granularity_name": "monthly",
   "horizon": 3,
-  "series": [
-    {
-      "t": "2027-10-01T00:00:00Z",
-      "actual": 20894391.38,
-      "predicted": 20993300.0
-    },
-    {
-      "t": "2027-11-01T00:00:00Z",
-      "actual": 20469155.24,
-      "predicted": 20506594.0
-    },
-    {
-      "t": "2027-12-01T00:00:00Z",
-      "actual": 21261327.31,
-      "predicted": 21018500.0
-    }
-  ]
+  "series": []
 }

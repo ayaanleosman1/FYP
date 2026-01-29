@@ -17,7 +17,7 @@ import {
 } from 'recharts'
 import './App.css'
 
-const API_BASE = 'http://127.0.0.1:8000'
+const API_BASE = 'http://127.0.0.1:8002'
 
 const MODEL_COLORS = {
   xgb: '#3b82f6',
@@ -40,6 +40,12 @@ function App() {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedModel, setSelectedModel] = useState('xgb')
+
+  // Chat state
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
 
   // Fetch available granularities and models on mount
   useEffect(() => {
@@ -138,6 +144,39 @@ function App() {
       }
     })
     return best
+  }
+
+  // Send chat message
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || chatLoading) return
+
+    const userMessage = chatInput
+    setChatInput('')
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setChatLoading(true)
+
+    try {
+      // Include current view context
+      const context = {
+        granularity: selectedGranularity,
+        selectedModel: selectedModel,
+        metrics: allModelsData[selectedModel]?.metrics,
+        activeTab: activeTab
+      }
+
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage, context })
+      })
+
+      const data = await res.json()
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }])
+    } finally {
+      setChatLoading(false)
+    }
   }
 
   return (
@@ -475,6 +514,17 @@ function App() {
           )}
         </>
       )}
+
+      {/* Chat Widget */}
+      <ChatWidget
+        open={chatOpen}
+        onToggle={() => setChatOpen(!chatOpen)}
+        messages={chatMessages}
+        input={chatInput}
+        onInputChange={setChatInput}
+        onSend={sendChatMessage}
+        loading={chatLoading}
+      />
     </div>
   )
 }
@@ -513,6 +563,51 @@ function CustomTooltip({ active, payload, label, isError }) {
           </span>
         </div>
       ))}
+    </div>
+  )
+}
+
+function ChatWidget({ open, onToggle, messages, input, onInputChange, onSend, loading }) {
+  return (
+    <div className="chat-widget">
+      {/* Toggle button */}
+      <button className="chat-toggle" onClick={onToggle}>
+        {open ? '\u2715' : '\uD83D\uDCAC'}
+      </button>
+
+      {/* Chat panel */}
+      {open && (
+        <div className="chat-panel">
+          <div className="chat-header">
+            <span>AI Assistant</span>
+          </div>
+
+          <div className="chat-messages">
+            {messages.length === 0 && (
+              <div className="chat-welcome">
+                Ask me about the electricity demand forecasts, model performance, or energy topics!
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`chat-message ${msg.role}`}>
+                {msg.content}
+              </div>
+            ))}
+            {loading && <div className="chat-message assistant typing">Thinking...</div>}
+          </div>
+
+          <div className="chat-input-area">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => onInputChange(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && onSend()}
+              placeholder="Ask about the data..."
+            />
+            <button onClick={onSend} disabled={loading}>Send</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
