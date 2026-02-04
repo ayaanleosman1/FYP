@@ -7,12 +7,14 @@ Provides endpoints for accessing demand forecasts at various granularities.
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from anthropic import Anthropic
+import joblib
+import numpy as np
 
 # Add ml directory to path for imports
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,7 +41,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -159,9 +161,150 @@ def metrics(
     return _read_output(granularity, "metrics", model, horizon)
 
 
+@app.get("/interpret")
+def interpret(
+    granularity: str = Query(default="W", description="Granularity code (H, D, W, M, Y)"),
+    horizon: int = Query(default=4, description="Forecast horizon in periods"),
+):
+    """
+    Get EBM model interpretation data (feature importances).
+
+    EBM (Explainable Boosting Machine) is a glassbox model that provides
+    full interpretability - you can see exactly how each feature affects predictions.
+
+    Args:
+        granularity: Granularity code - H(ourly), D(aily), W(eekly), M(onthly)
+        horizon: Forecast horizon in periods
+
+    Returns:
+        Feature importances showing how much each feature contributes to predictions
+    """
+    try:
+        gran = Granularity.from_code(granularity)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid granularity: {granularity}. Valid codes: H, D, W, M"
+        )
+
+    interp_path = OUTPUTS_DIR / gran.config.folder_name / f"interpretation_ebm_{horizon}.json"
+    if not interp_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No interpretation data found for EBM at granularity={granularity}, horizon={horizon}"
+        )
+
+    with open(interp_path) as f:
+        return json.load(f)
+
+
+class WhatIfRequest(BaseModel):
+    """Request body for what-if prediction."""
+    features: Dict[str, float]
+    granularity: str = "H"
+    horizon: int = 24
+
+
+@app.post("/whatif")
+def whatif_predict(request: WhatIfRequest):
+    """
+    What-If Analysis: Get a prediction based on custom feature values.
+
+    Users can adjust input features (temperature, hour, day of week, etc.)
+    and see how the predicted demand changes.
+
+    This endpoint uses the EBM (Explainable Boosting Machine) model.
+    """
+    try:
+        gran = Granularity.from_code(request.granularity)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid granularity: {request.granularity}"
+        )
+
+    # Load the saved model
+    model_path = OUTPUTS_DIR / gran.config.folder_name / "models" / f"ebm_{request.horizon}.joblib"
+    if not model_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No EBM model found. Train with: python train_ebm.py --granularity {request.granularity}"
+        )
+
+    # Load interpretation data for feature info
+    interp_path = OUTPUTS_DIR / gran.config.folder_name / f"interpretation_ebm_{request.horizon}.json"
+    with open(interp_path) as f:
+        interp_data = json.load(f)
+
+    expected_features = interp_data["features"]
+    feature_ranges = interp_data.get("feature_ranges", {})
+
+    # Build feature vector in correct order
+    feature_values = []
+    for feat in expected_features:
+        if feat in request.features:
+            feature_values.append(request.features[feat])
+        elif feat in feature_ranges:
+            # Use median as default
+            feature_values.append(feature_ranges[feat]["median"])
+        else:
+            feature_values.append(0)
+
+    # Load model and predict
+    model_data = joblib.load(model_path)
+    ebm = model_data["model"]
+
+    X = np.array([feature_values])
+    prediction = float(ebm.predict(X)[0])
+
+    # Get feature contributions (local explanation)
+    contributions = {}
+    try:
+        local_exp = ebm.explain_local(X)
+        for i, feat in enumerate(expected_features):
+            contributions[feat] = float(local_exp.data(0)["scores"][i])
+    except:
+        pass
+
+    return {
+        "prediction": round(prediction, 2),
+        "unit": "MW",
+        "features_used": {feat: feature_values[i] for i, feat in enumerate(expected_features)},
+        "contributions": contributions,
+        "feature_ranges": feature_ranges,
+    }
+
+
+@app.get("/whatif/features")
+def whatif_features(
+    granularity: str = Query(default="H", description="Granularity code"),
+    horizon: int = Query(default=24, description="Forecast horizon"),
+):
+    """
+    Get available features and their ranges for What-If analysis.
+    """
+    try:
+        gran = Granularity.from_code(granularity)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid granularity: {granularity}")
+
+    interp_path = OUTPUTS_DIR / gran.config.folder_name / f"interpretation_ebm_{horizon}.json"
+    if not interp_path.exists():
+        raise HTTPException(status_code=404, detail="No EBM model found for this granularity")
+
+    with open(interp_path) as f:
+        data = json.load(f)
+
+    return {
+        "features": data["features"],
+        "feature_ranges": data.get("feature_ranges", {}),
+        "feature_importances": data.get("feature_importances", {}),
+    }
+
+
 @app.get("/predict")
 def predict(
-    model: str = Query(default="xgb", description="Model name (xgb, rf, linear)"),
+    model: str = Query(default="xgb", description="Model name (xgb, rf, linear, ebm)"),
     horizon: int = Query(default=24, description="Forecast horizon in periods"),
     granularity: str = Query(default="H", description="Granularity code (H, D, W, M, Y)"),
 ):
@@ -288,8 +431,9 @@ def build_system_prompt(context: dict) -> str:
 You help users understand:
 - Electricity demand forecasts and predictions
 - Model performance metrics (MAE, RMSE, SMAPE, MAPE)
-- Comparisons between XGBoost, Random Forest, and Linear Regression models
+- Comparisons between XGBoost, Random Forest, Linear Regression, and EBM (Explainable Boosting Machine) models
 - UK National Grid demand patterns
+- EBM feature importances - which factors most influence predictions
 
 Data source: National Grid ESO/NESO historic demand data.
 Demand values are in megawatts (MW) for hourly or megawatt-hours (MWh) for aggregated periods.
