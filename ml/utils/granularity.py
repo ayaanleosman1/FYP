@@ -54,7 +54,7 @@ GRANULARITY_CONFIG = {
         name="daily",
         pandas_freq="D",
         default_horizon=7,
-        default_test_periods=7,  # 7 days
+        default_test_periods=30,  # 30 days (1 month of predictions)
         folder_name="daily",
     ),
     Granularity.WEEKLY: GranularityConfig(
@@ -62,7 +62,7 @@ GRANULARITY_CONFIG = {
         name="weekly",
         pandas_freq="W-MON",  # Week starting Monday
         default_horizon=4,
-        default_test_periods=4,  # 4 weeks
+        default_test_periods=12,  # 12 weeks (3 months of predictions)
         folder_name="weekly",
     ),
     Granularity.MONTHLY: GranularityConfig(
@@ -70,7 +70,7 @@ GRANULARITY_CONFIG = {
         name="monthly",
         pandas_freq="MS",  # Month start
         default_horizon=3,
-        default_test_periods=3,  # 3 months
+        default_test_periods=12,  # 12 months (1 year of test data)
         folder_name="monthly",
     ),
     Granularity.YEARLY: GranularityConfig(
@@ -78,7 +78,7 @@ GRANULARITY_CONFIG = {
         name="yearly",
         pandas_freq="YS",  # Year start
         default_horizon=1,
-        default_test_periods=1,  # 1 year
+        default_test_periods=5,  # 5 years (2020-2024) for meaningful charts
         folder_name="yearly",
     ),
 }
