@@ -17,18 +17,28 @@ import {
 } from 'recharts'
 import './App.css'
 
-const API_BASE = 'http://127.0.0.1:8002'
+const API_BASE = 'http://127.0.0.1:8000'
 
 const MODEL_COLORS = {
   xgb: '#3b82f6',
   rf: '#10b981',
-  linear: '#f59e0b'
+  linear: '#f59e0b',
+  ebm: '#8b5cf6'
 }
 
 const MODEL_NAMES = {
   xgb: 'XGBoost',
   rf: 'Random Forest',
-  linear: 'Linear Regression'
+  linear: 'Linear Regression',
+  ebm: 'Explainable Boosting Machine'
+}
+
+const DATA_INFO = {
+  source: 'UK National Grid (NESO)',
+  years: '2009-2024',
+  totalHours: '140,240',
+  features: 'Demand + Weather (temperature, humidity, wind)',
+  url: 'https://www.neso.energy/data-portal/historic-demand-data'
 }
 
 function App() {
@@ -38,14 +48,21 @@ function App() {
   const [allModelsData, setAllModelsData] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('forecast')
+  const [forecastView, setForecastView] = useState('overview')
   const [selectedModel, setSelectedModel] = useState('xgb')
-
   // Chat state
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMessages, setChatMessages] = useState([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+
+  // What-If state
+  const [whatIfFeatures, setWhatIfFeatures] = useState(null)
+  const [whatIfValues, setWhatIfValues] = useState({})
+  const [whatIfPrediction, setWhatIfPrediction] = useState(null)
+  const [whatIfLoading, setWhatIfLoading] = useState(false)
+  const [whatIfBaseline, setWhatIfBaseline] = useState(null)
 
   // Fetch available granularities and models on mount
   useEffect(() => {
@@ -117,6 +134,7 @@ function App() {
     return firstModel.preds.series.map((item, idx) => {
       const point = {
         time: formatTime(item.t, selectedGranularity),
+        timestamp: item.t,
         actual: item.actual
       }
       models.forEach(m => {
@@ -144,6 +162,61 @@ function App() {
       }
     })
     return best
+  }
+
+  // Fetch What-If features when tab is selected
+  const loadWhatIfFeatures = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/whatif/features?granularity=H&horizon=24`)
+      if (res.ok) {
+        const data = await res.json()
+        setWhatIfFeatures(data)
+        // Initialize with median values
+        const initialValues = {}
+        Object.entries(data.feature_ranges).forEach(([feat, range]) => {
+          initialValues[feat] = range.median
+        })
+        setWhatIfValues(initialValues)
+        // Get initial prediction and save as baseline
+        fetchWhatIfPrediction(initialValues, true)
+      }
+    } catch (err) {
+      console.error('Failed to load what-if features:', err)
+    }
+  }
+
+  // Fetch What-If prediction
+  const fetchWhatIfPrediction = async (values, isBaseline = false) => {
+    setWhatIfLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/whatif`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          features: values,
+          granularity: 'H',
+          horizon: 24
+        })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setWhatIfPrediction(data)
+        if (isBaseline) {
+          setWhatIfBaseline(data.prediction)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to get prediction:', err)
+    } finally {
+      setWhatIfLoading(false)
+    }
+  }
+
+  // Handle slider change
+  const handleWhatIfChange = (feature, value) => {
+    const newValues = { ...whatIfValues, [feature]: parseFloat(value) }
+    setWhatIfValues(newValues)
+    fetchWhatIfPrediction(newValues)
   }
 
   // Send chat message
@@ -181,13 +254,62 @@ function App() {
 
   return (
     <div className="app">
+      {/* Navigation Bar */}
+      <nav className="navbar">
+        <div className="nav-brand">
+          <span className="nav-logo">&#9889;</span>
+          <span className="nav-title">UK Demand Forecast</span>
+        </div>
+        <div className="nav-links">
+          <button
+            className={`nav-link ${activeTab === 'forecast' ? 'active' : ''}`}
+            onClick={() => setActiveTab('forecast')}
+          >
+            Forecast
+          </button>
+          <button
+            className={`nav-link ${activeTab === 'whatif' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('whatif')
+              if (!whatIfFeatures) loadWhatIfFeatures()
+            }}
+          >
+            What-If Analysis
+          </button>
+          <button
+            className={`nav-link chat-link ${chatOpen ? 'active' : ''}`}
+            onClick={() => setChatOpen(!chatOpen)}
+          >
+            <span className="chat-icon">&#128172;</span>
+            AI Assistant
+          </button>
+        </div>
+      </nav>
+
       <header className="header">
-        <h1>Electricity Demand Forecasting</h1>
-        <p className="subtitle">Multi-timeframe ML model comparison dashboard</p>
+        <h1>UK Electricity Demand Forecasting</h1>
+        <p className="subtitle">ML models trained on 16 years of real National Grid data</p>
+        <div className="data-badge">
+          <span className="badge-item">
+            <span className="badge-icon">&#9889;</span>
+            {DATA_INFO.source}
+          </span>
+          <span className="badge-item">
+            <span className="badge-icon">&#128197;</span>
+            {DATA_INFO.years}
+          </span>
+          <span className="badge-item">
+            <span className="badge-icon">&#127777;</span>
+            Weather Features
+          </span>
+        </div>
       </header>
 
       {error && <div className="error">{error}</div>}
 
+      {/* Forecast Section */}
+      {activeTab === 'forecast' && (
+        <>
       <div className="controls-bar">
         <div className="granularity-tabs">
           {granularities.map(g => (
@@ -201,6 +323,7 @@ function App() {
             </button>
           ))}
         </div>
+
       </div>
 
       {loading ? (
@@ -256,30 +379,30 @@ function App() {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
+          {/* Forecast Sub-Navigation */}
           <div className="nav-tabs">
             <button
-              className={activeTab === 'overview' ? 'active' : ''}
-              onClick={() => setActiveTab('overview')}
+              className={forecastView === 'overview' ? 'active' : ''}
+              onClick={() => setForecastView('overview')}
             >
               Overview
             </button>
             <button
-              className={activeTab === 'comparison' ? 'active' : ''}
-              onClick={() => setActiveTab('comparison')}
+              className={forecastView === 'comparison' ? 'active' : ''}
+              onClick={() => setForecastView('comparison')}
             >
               Model Comparison
             </button>
             <button
-              className={activeTab === 'details' ? 'active' : ''}
-              onClick={() => setActiveTab('details')}
+              className={forecastView === 'details' ? 'active' : ''}
+              onClick={() => setForecastView('details')}
             >
               Detailed Analysis
             </button>
           </div>
 
           {/* Overview Tab */}
-          {activeTab === 'overview' && currentData && (
+          {forecastView === 'overview' && currentData && (
             <div className="tab-content">
               <div className="chart-section">
                 <h3>Forecast vs Actual - {MODEL_NAMES[selectedModel]}</h3>
@@ -343,7 +466,7 @@ function App() {
           )}
 
           {/* Comparison Tab */}
-          {activeTab === 'comparison' && (
+          {forecastView === 'comparison' && (
             <div className="tab-content">
               <div className="chart-section">
                 <h3>All Models Comparison</h3>
@@ -424,7 +547,7 @@ function App() {
           )}
 
           {/* Details Tab */}
-          {activeTab === 'details' && currentData && (
+          {forecastView === 'details' && currentData && (
             <div className="tab-content">
               <div className="details-header">
                 <h3>{MODEL_NAMES[selectedModel]} - Prediction Details</h3>
@@ -514,6 +637,269 @@ function App() {
           )}
         </>
       )}
+      </>
+      )}
+
+      {/* What-If Section */}
+      {activeTab === 'whatif' && (
+            <div className="tab-content whatif-tab">
+              <div className="whatif-header">
+                <h3>What-If Scenario Analysis</h3>
+                <p className="whatif-description">
+                  Explore how different conditions affect UK electricity demand. Model trained on 16 years of real National Grid data (2009-2024).
+                </p>
+              </div>
+
+              {!whatIfFeatures ? (
+                <div className="loading">Loading features...</div>
+              ) : (
+                <>
+                  {/* Preset Scenarios */}
+                  <div className="scenario-presets">
+                    <h4>Quick Scenarios</h4>
+                    <div className="preset-grid">
+                      <button
+                        className="preset-card"
+                        onClick={() => {
+                          // Cold winter morning: high demand due to heating + morning ramp up
+                          const vals = {
+                            hour: 8, dow: 1, month: 1, temp: 2, humidity: 85, wind_speed: 15,
+                            lag_1: 38000, lag_24: 35000, lag_168: 37000, roll_24_mean: 34000
+                          }
+                          setWhatIfValues(vals)
+                          fetchWhatIfPrediction(vals)
+                        }}
+                      >
+                        <span className="preset-icon">🌅</span>
+                        <span className="preset-name">Cold Winter Morning</span>
+                        <span className="preset-desc">8 AM, Monday, 2°C</span>
+                      </button>
+                      <button
+                        className="preset-card"
+                        onClick={() => {
+                          // Summer evening peak: moderate demand, evening activities
+                          const vals = {
+                            hour: 18, dow: 2, month: 7, temp: 24, humidity: 55, wind_speed: 10,
+                            lag_1: 30000, lag_24: 28000, lag_168: 29000, roll_24_mean: 27000
+                          }
+                          setWhatIfValues(vals)
+                          fetchWhatIfPrediction(vals)
+                        }}
+                      >
+                        <span className="preset-icon">🌇</span>
+                        <span className="preset-name">Summer Evening Peak</span>
+                        <span className="preset-desc">6 PM, Weekday, 24°C</span>
+                      </button>
+                      <button
+                        className="preset-card"
+                        onClick={() => {
+                          // Weekend night: lowest demand - everyone sleeping
+                          const vals = {
+                            hour: 3, dow: 6, month: 5, temp: 12, humidity: 75, wind_speed: 8,
+                            lag_1: 18000, lag_24: 20000, lag_168: 18500, roll_24_mean: 22000
+                          }
+                          setWhatIfValues(vals)
+                          fetchWhatIfPrediction(vals)
+                        }}
+                      >
+                        <span className="preset-icon">🌙</span>
+                        <span className="preset-name">Weekend Night</span>
+                        <span className="preset-desc">3 AM, Saturday, 12°C</span>
+                      </button>
+                      <button
+                        className="preset-card"
+                        onClick={() => {
+                          // Peak winter evening: highest demand - cold + everyone home
+                          const vals = {
+                            hour: 17, dow: 3, month: 12, temp: -2, humidity: 90, wind_speed: 20,
+                            lag_1: 42000, lag_24: 40000, lag_168: 41000, roll_24_mean: 38000
+                          }
+                          setWhatIfValues(vals)
+                          fetchWhatIfPrediction(vals)
+                        }}
+                      >
+                        <span className="preset-icon">❄️</span>
+                        <span className="preset-name">Peak Winter Evening</span>
+                        <span className="preset-desc">5 PM, December, -2°C</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="whatif-container">
+                    {/* Result Panel - Now on left for prominence */}
+                    <div className="whatif-result">
+                      <div className="result-header">
+                        <h4>Predicted Demand</h4>
+                        {whatIfBaseline && (
+                          <span className="baseline-label">Baseline: {formatNumber(whatIfBaseline)} MW</span>
+                        )}
+                      </div>
+
+                      {whatIfLoading ? (
+                        <div className="prediction-loading">
+                          <div className="pulse-ring"></div>
+                          Calculating...
+                        </div>
+                      ) : whatIfPrediction ? (
+                        <>
+                          {/* Visual Gauge */}
+                          <div className="demand-gauge">
+                            <svg viewBox="0 0 200 120" className="gauge-svg">
+                              <defs>
+                                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="#10b981" />
+                                  <stop offset="50%" stopColor="#f59e0b" />
+                                  <stop offset="100%" stopColor="#ef4444" />
+                                </linearGradient>
+                              </defs>
+                              {/* Background arc */}
+                              <path
+                                d="M 20 100 A 80 80 0 0 1 180 100"
+                                fill="none"
+                                stroke="#334155"
+                                strokeWidth="12"
+                                strokeLinecap="round"
+                              />
+                              {/* Filled arc based on prediction */}
+                              <path
+                                d="M 20 100 A 80 80 0 0 1 180 100"
+                                fill="none"
+                                stroke="url(#gaugeGradient)"
+                                strokeWidth="12"
+                                strokeLinecap="round"
+                                strokeDasharray={`${((whatIfPrediction.prediction - 15000) / 30000) * 251} 251`}
+                              />
+                              {/* Needle */}
+                              <line
+                                x1="100"
+                                y1="100"
+                                x2={100 + 60 * Math.cos(Math.PI - ((whatIfPrediction.prediction - 15000) / 30000) * Math.PI)}
+                                y2={100 - 60 * Math.sin(Math.PI - ((whatIfPrediction.prediction - 15000) / 30000) * Math.PI)}
+                                stroke="#f1f5f9"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                              />
+                              <circle cx="100" cy="100" r="8" fill="#f1f5f9" />
+                            </svg>
+                            <div className="gauge-labels">
+                              <span>15k</span>
+                              <span>30k</span>
+                              <span>45k</span>
+                            </div>
+                          </div>
+
+                          <div className="prediction-value">
+                            {Math.round(whatIfPrediction.prediction).toLocaleString()}
+                            <span className="prediction-unit">MW</span>
+                          </div>
+
+                          {whatIfBaseline && whatIfPrediction.prediction !== whatIfBaseline && (
+                            <div className={`prediction-change ${whatIfPrediction.prediction > whatIfBaseline ? 'increase' : 'decrease'}`}>
+                              {whatIfPrediction.prediction > whatIfBaseline ? '▲' : '▼'}
+                              {' '}{Math.abs(whatIfPrediction.prediction - whatIfBaseline).toFixed(0)} MW
+                              {' '}({((whatIfPrediction.prediction - whatIfBaseline) / whatIfBaseline * 100).toFixed(2)}%)
+                            </div>
+                          )}
+
+                          {/* Impact Summary */}
+                          <div className="impact-summary">
+                            {Object.entries(whatIfPrediction.contributions || {})
+                              .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                              .slice(0, 3)
+                              .map(([feat, value]) => (
+                                <div key={feat} className={`impact-chip ${value >= 0 ? 'positive' : 'negative'}`}>
+                                  {formatFeatureName(feat)}: {value >= 0 ? '+' : ''}{value.toFixed(0)}
+                                </div>
+                              ))}
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+
+                    {/* Sliders Panel */}
+                    <div className="whatif-sliders">
+                      <div className="sliders-header">
+                        <h4>Adjust Conditions</h4>
+                        <button
+                          className="reset-btn"
+                          onClick={() => {
+                            const resetValues = {}
+                            Object.entries(whatIfFeatures.feature_ranges).forEach(([feat, range]) => {
+                              resetValues[feat] = range.median
+                            })
+                            setWhatIfValues(resetValues)
+                            fetchWhatIfPrediction(resetValues)
+                          }}
+                        >
+                          Reset
+                        </button>
+                      </div>
+
+                      {/* Key controllable features - including lag features which have highest impact */}
+                      {['lag_1', 'hour', 'lag_24', 'temp', 'dow', 'humidity', 'wind_speed', 'month'].map(feat => {
+                        const range = whatIfFeatures.feature_ranges[feat]
+                        if (!range) return null
+                        const importance = whatIfFeatures.feature_importances[feat] || 0
+                        const maxImportance = Math.max(...Object.values(whatIfFeatures.feature_importances))
+
+                        return (
+                          <div key={feat} className="whatif-slider">
+                            <div className="slider-header">
+                              <label>
+                                <span className="feature-icon">{getFeatureIcon(feat)}</span>
+                                {formatFeatureName(feat)}
+                              </label>
+                              <span className="slider-value">{formatFeatureValue(feat, whatIfValues[feat])}</span>
+                            </div>
+                            <div className="slider-track-container">
+                              <input
+                                type="range"
+                                min={range.min}
+                                max={range.max}
+                                step={feat === 'hour' || feat === 'dow' || feat === 'month' ? 1 : (range.max - range.min) / 100}
+                                value={whatIfValues[feat] || range.median}
+                                onChange={(e) => handleWhatIfChange(feat, e.target.value)}
+                              />
+                              <div
+                                className="importance-indicator"
+                                style={{ opacity: 0.3 + (importance / maxImportance) * 0.7 }}
+                                title={`Impact: ${(importance / maxImportance * 100).toFixed(0)}%`}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      <div className="slider-note">
+                        <p><strong>Why "Previous Hour Demand" matters most:</strong> Electricity demand is highly predictable - if 30,000 MW was needed last hour, roughly 30,000 MW will be needed this hour. This autocorrelation is the strongest predictor. Temperature and time affect demand, but the baseline is set by recent actual demand.</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+      )}
+
+      {/* Data Source Footer */}
+      <footer className="data-footer">
+        <div className="footer-content">
+          <div className="footer-section">
+            <h4>Data Source</h4>
+            <p>Real UK electricity demand from <a href={DATA_INFO.url} target="_blank" rel="noopener noreferrer">National Grid ESO/NESO</a></p>
+            <p className="footer-stats">{DATA_INFO.totalHours} hours of historical data ({DATA_INFO.years})</p>
+          </div>
+          <div className="footer-section">
+            <h4>Features</h4>
+            <p>Demand (MW) + Weather data (temperature, humidity, wind speed)</p>
+            <p className="footer-stats">Weather from UK Met Office via Open-Meteo API</p>
+          </div>
+          <div className="footer-section">
+            <h4>Models</h4>
+            <p>XGBoost, Random Forest, Linear Regression, Explainable Boosting Machine</p>
+            <p className="footer-stats">EBM provides full interpretability - see exactly how each feature affects predictions</p>
+          </div>
+        </div>
+      </footer>
 
       {/* Chat Widget */}
       <ChatWidget
@@ -610,6 +996,57 @@ function ChatWidget({ open, onToggle, messages, input, onInputChange, onSend, lo
       )}
     </div>
   )
+}
+
+function formatFeatureName(feat) {
+  const names = {
+    'hour': 'Hour of Day',
+    'dow': 'Day of Week',
+    'month': 'Month',
+    'lag_1': 'Previous Hour Demand',
+    'lag_24': 'Yesterday Same Hour',
+    'lag_168': 'Last Week Same Hour',
+    'roll_24_mean': '24h Average Demand',
+    'temp': 'Temperature',
+    'temp_lag_24': 'Temp 24h Ago',
+    'humidity': 'Humidity',
+    'wind_speed': 'Wind Speed',
+  }
+  return names[feat] || feat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+function getFeatureIcon(feat) {
+  const icons = {
+    'hour': '🕐',
+    'dow': '📅',
+    'month': '📆',
+    'temp': '🌡️',
+    'humidity': '💧',
+    'wind_speed': '💨',
+    'lag_1': '⚡',
+    'lag_24': '📈',
+    'lag_168': '📊',
+    'roll_24_mean': '📉',
+  }
+  return icons[feat] || '📊'
+}
+
+function formatFeatureValue(feat, value) {
+  if (value === undefined || value === null) return '-'
+  if (feat === 'hour') return `${Math.round(value)}:00`
+  if (feat === 'dow') {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return days[Math.round(value)] || value
+  }
+  if (feat === 'month') {
+    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return months[Math.round(value)] || value
+  }
+  if (feat === 'temp') return `${value.toFixed(1)}°C`
+  if (feat === 'humidity') return `${value.toFixed(0)}%`
+  if (feat === 'wind_speed') return `${value.toFixed(1)} km/h`
+  if (feat.startsWith('lag_') || feat.startsWith('roll_')) return `${(value/1000).toFixed(1)}k MW`
+  return value.toFixed(1)
 }
 
 function getHorizonUnit(granularity) {
