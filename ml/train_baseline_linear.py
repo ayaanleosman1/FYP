@@ -55,9 +55,9 @@ def parse_args():
     parser.add_argument(
         "--source", "-s",
         type=str,
-        default="auto",
-        choices=["real", "synthetic", "auto"],
-        help="Data source: real (UK NESO data), synthetic, or auto (try real first)"
+        default="real",
+        choices=["real", "synthetic"],
+        help="Data source: real (UK NESO data) or synthetic (for testing only)"
     )
     return parser.parse_args()
 

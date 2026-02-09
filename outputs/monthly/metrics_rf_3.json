@@ -3,8 +3,8 @@
   "granularity": "M",
   "granularity_name": "monthly",
   "horizon": 3,
-  "mae": 127817.28,
-  "rmse": 192116.27,
-  "smape": 0.61,
-  "mape": 0.6
+  "mae": 746711.3,
+  "rmse": 958599.8,
+  "smape": 3.76,
+  "mape": 3.68
 }

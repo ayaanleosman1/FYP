@@ -1,0 +1,130 @@
+{
+  "model": "ebm",
+  "granularity": "W",
+  "feature_importances": {
+    "lag_1": 119973.3543238821,
+    "gen_solar": 104111.2000461328,
+    "roll_4_mean": 74330.64796962157,
+    "lag_52": 69144.15887760349,
+    "carbon_intensity": 63345.14067045225,
+    "lag_4": 62617.66398439726,
+    "humidity": 56624.31075952322,
+    "quarter": 39976.43529806899,
+    "month": 35934.6143768477,
+    "gen_wind": 34491.23421598992,
+    "week_of_year": 32159.023846940338,
+    "has_holiday": 29345.214671658552,
+    "gen_nuclear": 18385.03533139953,
+    "gen_gas": 13131.301177131321,
+    "wind_speed": 9407.295116014437
+  },
+  "features": [
+    "week_of_year",
+    "month",
+    "quarter",
+    "has_holiday",
+    "lag_1",
+    "lag_4",
+    "lag_52",
+    "roll_4_mean",
+    "humidity",
+    "wind_speed",
+    "carbon_intensity",
+    "gen_gas",
+    "gen_wind",
+    "gen_solar",
+    "gen_nuclear"
+  ],
+  "feature_ranges": {
+    "week_of_year": {
+      "min": 1.0,
+      "max": 53.0,
+      "mean": 25.899193548387096,
+      "median": 26.0
+    },
+    "month": {
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.290322580645161,
+      "median": 6.0
+    },
+    "quarter": {
+      "min": 1.0,
+      "max": 4.0,
+      "mean": 2.435483870967742,
+      "median": 2.0
+    },
+    "has_holiday": {
+      "min": 0.0,
+      "max": 3.0,
+      "mean": 0.14516129032258066,
+      "median": 0.0
+    },
+    "lag_1": {
+      "min": 3436488.0,
+      "max": 5957726.0,
+      "mean": 4499102.316532258,
+      "median": 4351933.5
+    },
+    "lag_4": {
+      "min": 3436488.0,
+      "max": 5957726.0,
+      "mean": 4514886.086693549,
+      "median": 4372986.75
+    },
+    "lag_52": {
+      "min": 3436488.0,
+      "max": 6274772.0,
+      "mean": 4606511.64717742,
+      "median": 4437368.75
+    },
+    "roll_4_mean": {
+      "min": 3600808.75,
+      "max": 5727688.75,
+      "mean": 4505715.646169355,
+      "median": 4356489.8125
+    },
+    "humidity": {
+      "min": 8575.0,
+      "max": 16019.0,
+      "mean": 13523.862903225807,
+      "median": 13523.0
+    },
+    "wind_speed": {
+      "min": 1197.5,
+      "max": 4606.4,
+      "mean": 2594.536693548387,
+      "median": 2487.75
+    },
+    "carbon_intensity": {
+      "min": 9319.5,
+      "max": 46393.0,
+      "mean": 27953.612903225807,
+      "median": 27825.25
+    },
+    "gen_gas": {
+      "min": 1510.25,
+      "max": 9984.65,
+      "mean": 5802.5417338709685,
+      "median": 5774.9
+    },
+    "gen_wind": {
+      "min": 816.35,
+      "max": 9596.65,
+      "mean": 4392.462096774194,
+      "median": 4282.6
+    },
+    "gen_solar": {
+      "min": 65.6,
+      "max": 1850.4,
+      "mean": 713.0881048387098,
+      "median": 727.2750000000001
+    },
+    "gen_nuclear": {
+      "min": 1141.05,
+      "max": 3978.05,
+      "mean": 2785.0800403225808,
+      "median": 2792.875
+    }
+  }
+}

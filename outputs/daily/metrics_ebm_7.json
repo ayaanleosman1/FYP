@@ -1,0 +1,10 @@
+{
+  "model": "ebm",
+  "granularity": "D",
+  "granularity_name": "daily",
+  "horizon": 7,
+  "mae": 26162.97,
+  "rmse": 31580.78,
+  "smape": 3.78,
+  "mape": 3.75
+}

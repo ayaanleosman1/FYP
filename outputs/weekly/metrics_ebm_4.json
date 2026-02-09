@@ -1,0 +1,10 @@
+{
+  "model": "ebm",
+  "granularity": "W",
+  "granularity_name": "weekly",
+  "horizon": 4,
+  "mae": 199959.32,
+  "rmse": 255195.83,
+  "smape": 4.11,
+  "mape": 4.08
+}

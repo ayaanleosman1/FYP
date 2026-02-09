@@ -3,8 +3,8 @@
   "granularity": "W",
   "granularity_name": "weekly",
   "horizon": 4,
-  "mae": 1369285.62,
-  "rmse": 2282987.32,
-  "smape": 44.32,
-  "mape": 191.54
+  "mae": 180075.33,
+  "rmse": 240655.43,
+  "smape": 3.69,
+  "mape": 3.6
 }

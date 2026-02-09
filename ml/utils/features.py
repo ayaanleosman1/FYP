@@ -3,20 +3,32 @@ Feature engineering for multi-timeframe forecasting.
 
 Each granularity has its own set of features:
 
-| Granularity | Calendar Features                     | Lag Features           | Rolling Features           |
-|-------------|---------------------------------------|------------------------|----------------------------|
-| Hourly (H)  | hour, dow, month                      | lag_1, lag_24, lag_168 | roll_24_mean               |
-| Daily (D)   | dow, month, day_of_year, is_weekend   | lag_1, lag_7           | roll_7_mean, roll_30_mean  |
-| Weekly (W)  | week_of_year, month, quarter          | lag_1, lag_4, lag_52   | roll_4_mean                |
-| Monthly (M) | month, quarter                        | lag_1, lag_12          | roll_3_mean, roll_12_mean  |
-| Yearly (Y)  | —                                     | lag_1                  | roll_2_mean                |
+| Granularity | Calendar Features                              | Lag Features           | Rolling Features           | Weather Features                    |
+|-------------|------------------------------------------------|------------------------|----------------------------|-------------------------------------|
+| Hourly (H)  | hour, dow, month, is_holiday                   | lag_1, lag_24, lag_168 | roll_24_mean               | temperature, humidity, wind_speed   |
+| Daily (D)   | dow, month, day_of_year, is_weekend, is_holiday| lag_1, lag_7           | roll_7_mean, roll_30_mean  | temp_mean, temp_range, precip_sum   |
+| Weekly (W)  | week_of_year, month, quarter, has_holiday      | lag_1, lag_4, lag_52   | roll_4_mean                | temp_mean, precip_sum               |
+| Monthly (M) | month, quarter                                 | lag_1, lag_12          | roll_3_mean, roll_12_mean  | temp_mean                           |
+| Yearly (Y)  | —                                              | lag_1                  | roll_2_mean                | temp_mean                           |
 """
 
 import pandas as pd
 import numpy as np
 from typing import Optional
+import holidays
 
 from .granularity import Granularity
+
+# UK holidays instance (cached for performance)
+_uk_holidays = None
+
+def get_uk_holidays():
+    """Get UK holidays instance (England + Wales + Scotland + Northern Ireland)."""
+    global _uk_holidays
+    if _uk_holidays is None:
+        # UK includes England, Wales, Scotland, Northern Ireland
+        _uk_holidays = holidays.UK(years=range(2000, 2030))
+    return _uk_holidays
 
 
 def build_features(
@@ -60,9 +72,10 @@ def _build_hourly_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     """
     Build features for hourly forecasting.
 
-    Calendar: hour, dow, month
+    Calendar: hour, dow, month, is_holiday
     Lags: lag_1, lag_24, lag_168 (1 week)
     Rolling: roll_24_mean
+    Weather: temperature, humidity, wind_speed (if available)
     """
     feat = df.copy()
 
@@ -70,6 +83,11 @@ def _build_hourly_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     feat["hour"] = feat.index.hour
     feat["dow"] = feat.index.dayofweek
     feat["month"] = feat.index.month
+
+    # UK Bank Holiday feature
+    uk_hols = get_uk_holidays()
+    feat["is_holiday"] = feat.index.date
+    feat["is_holiday"] = feat["is_holiday"].apply(lambda x: 1 if x in uk_hols else 0)
 
     # Lag features
     feat["lag_1"] = feat[target_col].shift(1)
@@ -79,6 +97,29 @@ def _build_hourly_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     # Rolling features (shifted to avoid look-ahead)
     feat["roll_24_mean"] = feat[target_col].shift(1).rolling(24).mean()
 
+    # Weather features (if available) - use lagged values to avoid look-ahead
+    if "temperature" in df.columns:
+        feat["temp"] = df["temperature"].shift(1)
+        feat["temp_lag_24"] = df["temperature"].shift(24)
+    if "humidity" in df.columns:
+        feat["humidity"] = df["humidity"].shift(1)
+    if "wind_speed" in df.columns:
+        feat["wind_speed"] = df["wind_speed"].shift(1)
+    # Solar radiation features (as suggested by tutor - affects demand via solar PV)
+    if "solar_radiation" in df.columns:
+        feat["solar_rad"] = df["solar_radiation"].shift(1)
+        feat["solar_rad_lag_24"] = df["solar_radiation"].shift(24)
+    if "direct_radiation" in df.columns:
+        feat["direct_rad"] = df["direct_radiation"].shift(1)
+
+    # Carbon intensity and generation mix features (from National Grid ESO)
+    if "carbon_intensity" in df.columns:
+        feat["carbon_intensity"] = df["carbon_intensity"].shift(1)
+    # Generation mix - percentage of each fuel type (affects demand patterns)
+    for fuel in ["gen_gas", "gen_wind", "gen_solar", "gen_nuclear"]:
+        if fuel in df.columns:
+            feat[fuel] = df[fuel].shift(1)
+
     return feat
 
 
@@ -86,9 +127,10 @@ def _build_daily_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     """
     Build features for daily forecasting.
 
-    Calendar: dow, month, day_of_year, is_weekend
+    Calendar: dow, month, day_of_year, is_weekend, is_holiday
     Lags: lag_1, lag_7
     Rolling: roll_7_mean, roll_30_mean
+    Weather: temp_mean, temp_lag_7 (if available)
     """
     feat = df.copy()
 
@@ -98,6 +140,11 @@ def _build_daily_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     feat["day_of_year"] = feat.index.dayofyear
     feat["is_weekend"] = (feat.index.dayofweek >= 5).astype(int)
 
+    # UK Bank Holiday feature
+    uk_hols = get_uk_holidays()
+    feat["is_holiday"] = feat.index.date
+    feat["is_holiday"] = feat["is_holiday"].apply(lambda x: 1 if x in uk_hols else 0)
+
     # Lag features
     feat["lag_1"] = feat[target_col].shift(1)
     feat["lag_7"] = feat[target_col].shift(7)
@@ -106,6 +153,12 @@ def _build_daily_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     feat["roll_7_mean"] = feat[target_col].shift(1).rolling(7).mean()
     feat["roll_30_mean"] = feat[target_col].shift(1).rolling(30).mean()
 
+    # Weather features (if available) - use lagged values
+    if "temperature" in df.columns:
+        feat["temp"] = df["temperature"].shift(1)
+        feat["temp_lag_7"] = df["temperature"].shift(7)
+        feat["temp_roll_7"] = df["temperature"].shift(1).rolling(7).mean()
+
     return feat
 
 
@@ -113,7 +166,7 @@ def _build_weekly_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     """
     Build features for weekly forecasting.
 
-    Calendar: week_of_year, month, quarter
+    Calendar: week_of_year, month, quarter, has_holiday
     Lags: lag_1, lag_4, lag_52
     Rolling: roll_4_mean
     """
@@ -123,6 +176,19 @@ def _build_weekly_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     feat["week_of_year"] = feat.index.isocalendar().week.astype(int)
     feat["month"] = feat.index.month
     feat["quarter"] = feat.index.quarter
+
+    # UK Bank Holiday feature - count holidays in each week
+    uk_hols = get_uk_holidays()
+    def count_holidays_in_week(start_date):
+        """Count UK holidays in the week starting from start_date."""
+        count = 0
+        for i in range(7):
+            day = (start_date + pd.Timedelta(days=i)).date()
+            if day in uk_hols:
+                count += 1
+        return count
+
+    feat["has_holiday"] = feat.index.to_series().apply(count_holidays_in_week)
 
     # Lag features
     feat["lag_1"] = feat[target_col].shift(1)
@@ -211,17 +277,17 @@ def get_feature_columns(granularity: Granularity) -> list[str]:
     """
     feature_map = {
         Granularity.HOURLY: [
-            "hour", "dow", "month",
+            "hour", "dow", "month", "is_holiday",
             "lag_1", "lag_24", "lag_168",
             "roll_24_mean"
         ],
         Granularity.DAILY: [
-            "dow", "month", "day_of_year", "is_weekend",
+            "dow", "month", "day_of_year", "is_weekend", "is_holiday",
             "lag_1", "lag_7",
             "roll_7_mean", "roll_30_mean"
         ],
         Granularity.WEEKLY: [
-            "week_of_year", "month", "quarter",
+            "week_of_year", "month", "quarter", "has_holiday",
             "lag_1", "lag_4", "lag_52",
             "roll_4_mean"
         ],
@@ -258,6 +324,26 @@ def get_available_features(df: pd.DataFrame, granularity: Granularity) -> list[s
     # Also include any additional lag columns that were created as fallbacks
     for col in df.columns:
         if col.startswith("lag_") and col not in available:
+            available.append(col)
+
+    # Include weather features if present
+    weather_features = ["temp", "temp_lag_24", "temp_lag_7", "temp_roll_7",
+                       "humidity", "wind_speed",
+                       "solar_rad", "solar_rad_lag_24", "direct_rad"]
+    for col in weather_features:
+        if col in df.columns and col not in available:
+            available.append(col)
+
+    # Include holiday features if present
+    holiday_features = ["is_holiday", "has_holiday"]
+    for col in holiday_features:
+        if col in df.columns and col not in available:
+            available.append(col)
+
+    # Include carbon intensity and generation mix features if present
+    carbon_features = ["carbon_intensity", "gen_gas", "gen_wind", "gen_solar", "gen_nuclear"]
+    for col in carbon_features:
+        if col in df.columns and col not in available:
             available.append(col)
 
     return available

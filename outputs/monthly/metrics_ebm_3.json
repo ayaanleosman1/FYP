@@ -1,0 +1,10 @@
+{
+  "model": "ebm",
+  "granularity": "M",
+  "granularity_name": "monthly",
+  "horizon": 3,
+  "mae": 524346.03,
+  "rmse": 661470.5,
+  "smape": 2.8,
+  "mape": 2.74
+}

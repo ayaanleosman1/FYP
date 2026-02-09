@@ -19,18 +19,20 @@ MODELS = {
     "xgb": "train_xgb.py",
     "rf": "train_rf.py",
     "linear": "train_baseline_linear.py",
+    "ebm": "train_ebm.py",
 }
 
 # Available granularities
 GRANULARITIES = ["H", "D", "W", "M", "Y"]
 
-# Days of data per granularity (reasonable defaults for synthetic data)
+# Days of data per granularity (reasonable defaults for real UK data)
+# Now using 16 years of data (2009-2024)
 DAYS_PER_GRANULARITY = {
-    "H": 90,      # 3 months
-    "D": 365,     # 1 year
-    "W": 730,     # 2 years (~104 weeks) - need enough for lag_52
-    "M": 730,     # 2 years (~24 months)
-    "Y": 1825,    # 5 years
+    "H": 365,     # 1 year for hourly (with weather features)
+    "D": 1095,    # 3 years for daily
+    "W": 2190,    # 6 years for weekly (~312 weeks) - good for lag_52
+    "M": 3650,    # 10 years for monthly (~120 months)
+    "Y": 5840,    # 16 years for yearly (all available data)
 }
 
 
@@ -64,14 +66,14 @@ def parse_args():
     parser.add_argument(
         "--source", "-s",
         type=str,
-        default="auto",
-        choices=["real", "synthetic", "auto"],
-        help="Data source: real (UK NESO data), synthetic, or auto (try real first)"
+        default="real",
+        choices=["real", "synthetic"],
+        help="Data source: real (UK NESO data) or synthetic (for testing only)"
     )
     return parser.parse_args()
 
 
-def train_model(model: str, granularity: str, days: int, seed: int, source: str = "auto") -> dict:
+def train_model(model: str, granularity: str, days: int, seed: int, source: str = "real") -> dict:
     """Train a single model at a single granularity."""
     script = MODELS[model]
     script_path = Path(__file__).parent / script
