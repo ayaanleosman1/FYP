@@ -93,6 +93,105 @@ def available():
     }
 
 
+@app.get("/dashboard")
+def dashboard():
+    """Aggregated dashboard data for the landing page. Single call, fast load."""
+    models = ["xgb", "rf", "linear", "ebm"]
+    granularity_horizons = {"H": 24, "D": 7, "W": 4, "M": 3}
+
+    performance = {}
+    best_smape = float("inf")
+    best_model = None
+    best_granularity = None
+
+    for gran_code, horizon in granularity_horizons.items():
+        performance[gran_code] = {}
+        try:
+            gran = Granularity.from_code(gran_code)
+        except ValueError:
+            continue
+        for model_id in models:
+            metrics_data = load_outputs(gran, "metrics", model_id, horizon)
+            if metrics_data is None:
+                metrics_data = load_legacy_outputs("metrics", model_id, horizon)
+            if metrics_data:
+                smape_val = metrics_data.get("smape")
+                performance[gran_code][model_id] = {
+                    "smape": smape_val,
+                    "mae": metrics_data.get("mae"),
+                    "rmse": metrics_data.get("rmse"),
+                    "mape": metrics_data.get("mape"),
+                }
+                if smape_val is not None and smape_val < best_smape:
+                    best_smape = smape_val
+                    best_model = model_id
+                    best_granularity = gran_code
+
+    # Best daily model for the preview chart
+    daily_models = performance.get("D", {})
+    best_daily_model = min(daily_models, key=lambda m: daily_models[m]["smape"]) if daily_models else "xgb"
+    best_daily_smape = daily_models.get(best_daily_model, {}).get("smape", 0)
+
+    best_forecast = {"model": best_daily_model, "granularity": "D", "smape": best_daily_smape, "series": []}
+    try:
+        gran_d = Granularity.from_code("D")
+        preds_data = load_outputs(gran_d, "preds", best_daily_model, 7)
+        if preds_data and "series" in preds_data:
+            best_forecast["series"] = preds_data["series"]
+    except Exception:
+        pass
+
+    # Top features from best daily model's SHAP data
+    FEATURE_CATEGORIES = {
+        "hour": "calendar", "dow": "calendar", "month": "calendar",
+        "day_of_year": "calendar", "is_weekend": "calendar", "is_holiday": "calendar",
+        "has_holiday": "calendar", "week_of_year": "calendar", "quarter": "calendar",
+        "lag_1": "lag", "lag_7": "lag", "lag_12": "lag", "lag_24": "lag",
+        "lag_52": "lag", "lag_168": "lag",
+        "roll_3_mean": "lag", "roll_4_mean": "lag", "roll_7_mean": "lag",
+        "roll_12_mean": "lag", "roll_24_mean": "lag", "roll_30_mean": "lag",
+        "temp": "weather", "humidity": "weather", "wind_speed": "weather",
+        "temp_roll_7": "weather", "temp_lag_7": "weather", "temp_lag_24": "weather",
+        "solar_rad": "weather", "solar_rad_lag_24": "weather", "direct_rad": "weather",
+        "gen_solar": "energy", "gen_gas": "energy", "gen_wind": "energy",
+        "gen_nuclear": "energy", "carbon_intensity": "energy",
+    }
+
+    top_features = []
+    n_features = 19
+    try:
+        gran_d = Granularity.from_code("D")
+        shap_path = OUTPUTS_DIR / gran_d.config.folder_name / f"shap_{best_daily_model}_7.json"
+        if shap_path.exists():
+            with open(shap_path) as f:
+                shap_data = json.load(f)
+            features_list = shap_data.get("features", [])
+            importance_list = shap_data.get("importance", [])
+            n_features = len(features_list)
+            for feat, imp in zip(features_list[:8], importance_list[:8]):
+                top_features.append({
+                    "name": feat,
+                    "importance": imp,
+                    "category": FEATURE_CATEGORIES.get(feat, "other"),
+                })
+    except Exception:
+        pass
+
+    return {
+        "stats": {
+            "data_years": 16,
+            "n_models": len(models),
+            "n_features": n_features,
+            "best_smape": round(best_smape, 2) if best_smape < float("inf") else None,
+            "best_model": best_model,
+            "best_granularity": best_granularity,
+        },
+        "performance": performance,
+        "best_forecast": best_forecast,
+        "top_features": top_features,
+    }
+
+
 def _read_output(
     granularity_code: str,
     file_type: str,
@@ -198,11 +297,120 @@ def interpret(
         return json.load(f)
 
 
+@app.get("/shap")
+def shap_analysis(
+    granularity: str = Query(default="D", description="Granularity code (H, D, W, M)"),
+    horizon: int = Query(default=7, description="Forecast horizon in periods"),
+    model: str = Query(default="xgb", description="Model name (xgb, rf, linear, ebm, hybrid)"),
+):
+    """
+    Get SHAP analysis for a model.
+
+    SHAP (SHapley Additive exPlanations) provides detailed feature importance
+    and shows how each feature contributes to individual predictions.
+
+    Args:
+        granularity: Granularity code - H(ourly), D(aily), W(eekly), M(onthly)
+        horizon: Forecast horizon in periods
+        model: Model type - xgb, rf, linear, ebm, hybrid
+
+    Returns:
+        SHAP feature importances and distribution data for visualization
+    """
+    try:
+        gran = Granularity.from_code(granularity)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid granularity: {granularity}. Valid codes: H, D, W, M"
+        )
+
+    shap_path = OUTPUTS_DIR / gran.config.folder_name / f"shap_{model}_{horizon}.json"
+    if not shap_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No SHAP analysis found for model={model}, granularity={granularity}, horizon={horizon}. Run: python ml/generate_shap.py -g {granularity} -m {model}"
+        )
+
+    with open(shap_path) as f:
+        return json.load(f)
+
+
+@app.get("/shap/available")
+def shap_available(
+    granularity: str = Query(default="D", description="Granularity code (H, D, W, M)"),
+    horizon: int = Query(default=7, description="Forecast horizon in periods"),
+):
+    """List which models have SHAP data for a given granularity and horizon."""
+    try:
+        gran = Granularity.from_code(granularity)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid granularity: {granularity}. Valid codes: H, D, W, M"
+        )
+
+    folder = OUTPUTS_DIR / gran.config.folder_name
+    available = []
+    for model_id in ["xgb", "rf", "linear", "ebm", "hybrid"]:
+        path = folder / f"shap_{model_id}_{horizon}.json"
+        if path.exists():
+            available.append(model_id)
+
+    return {"granularity": granularity, "horizon": horizon, "models": available}
+
+
 class WhatIfRequest(BaseModel):
     """Request body for what-if prediction."""
     features: Dict[str, float]
     granularity: str = "H"
     horizon: int = 24
+
+
+class SensitivityRequest(BaseModel):
+    """Request body for sensitivity analysis."""
+    feature: str
+    granularity: str = "H"
+    horizon: int = 24
+    steps: int = 30
+    base_features: Dict[str, float] = {}
+
+
+@app.get("/ebm-shapes")
+def ebm_shapes(
+    granularity: str = Query(default="D", description="Granularity code (H, D, W, M)"),
+    horizon: int = Query(default=7, description="Forecast horizon in periods"),
+):
+    """
+    Get EBM shape functions for visualization.
+
+    Shape functions show exactly how each feature value maps to its contribution
+    to the prediction. This is a key advantage of EBM's glass-box interpretability.
+
+    Args:
+        granularity: Granularity code - H(ourly), D(aily), W(eekly), M(onthly)
+        horizon: Forecast horizon in periods
+
+    Returns:
+        Shape function data for each feature (x values and corresponding y contributions)
+    """
+    try:
+        gran = Granularity.from_code(granularity)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid granularity: {granularity}. Valid codes: H, D, W, M"
+        )
+
+    shapes_path = OUTPUTS_DIR / gran.config.folder_name / f"ebm_shapes_{horizon}.json"
+    if not shapes_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No EBM shapes found for granularity={granularity}, horizon={horizon}. Run: python ml/generate_ebm_shapes.py -g {granularity}"
+        )
+
+    with open(shapes_path) as f:
+        return json.load(f)
 
 
 @app.post("/whatif")
@@ -299,6 +507,75 @@ def whatif_features(
         "features": data["features"],
         "feature_ranges": data.get("feature_ranges", {}),
         "feature_importances": data.get("feature_importances", {}),
+    }
+
+
+@app.post("/whatif/sensitivity")
+def whatif_sensitivity(request: SensitivityRequest):
+    """
+    Sensitivity analysis: sweep one feature across its range and return predictions.
+    """
+    try:
+        gran = Granularity.from_code(request.granularity)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid granularity: {request.granularity}")
+
+    model_path = OUTPUTS_DIR / gran.config.folder_name / "models" / f"ebm_{request.horizon}.joblib"
+    if not model_path.exists():
+        raise HTTPException(status_code=404, detail="No EBM model found for this configuration")
+
+    interp_path = OUTPUTS_DIR / gran.config.folder_name / f"interpretation_ebm_{request.horizon}.json"
+    if not interp_path.exists():
+        raise HTTPException(status_code=404, detail="No interpretation data found")
+
+    with open(interp_path) as f:
+        interp_data = json.load(f)
+
+    expected_features = interp_data["features"]
+    feature_ranges = interp_data.get("feature_ranges", {})
+
+    if request.feature not in expected_features:
+        raise HTTPException(status_code=400, detail=f"Unknown feature: {request.feature}")
+
+    feat_range = feature_ranges.get(request.feature)
+    if not feat_range:
+        raise HTTPException(status_code=400, detail=f"No range data for feature: {request.feature}")
+
+    model_data = joblib.load(model_path)
+    ebm = model_data["model"]
+
+    # Build base feature vector
+    base_values = {}
+    for feat in expected_features:
+        if feat in request.base_features:
+            base_values[feat] = request.base_features[feat]
+        elif feat in feature_ranges:
+            base_values[feat] = feature_ranges[feat]["median"]
+        else:
+            base_values[feat] = 0
+
+    sweep_values = np.linspace(feat_range["min"], feat_range["max"], request.steps)
+    sweep = []
+
+    for val in sweep_values:
+        feature_vector = [base_values[f] if f != request.feature else float(val) for f in expected_features]
+        X = np.array([feature_vector])
+        pred = float(ebm.predict(X)[0])
+        sweep.append({"value": round(float(val), 4), "prediction": round(pred, 2)})
+
+    # Base prediction (at median of swept feature)
+    base_vector = [base_values[f] for f in expected_features]
+    base_prediction = float(ebm.predict(np.array([base_vector]))[0])
+
+    return {
+        "feature": request.feature,
+        "sweep": sweep,
+        "base_prediction": round(base_prediction, 2),
+        "feature_range": {
+            "min": feat_range["min"],
+            "max": feat_range["max"],
+            "median": feat_range["median"],
+        },
     }
 
 

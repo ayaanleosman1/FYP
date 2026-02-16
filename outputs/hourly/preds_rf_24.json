@@ -7,842 +7,842 @@
     {
       "t": "2024-12-25T00:00:00Z",
       "actual": 21569.5,
-      "predicted": 20965.21
+      "predicted": 21579.14
     },
     {
       "t": "2024-12-25T01:00:00Z",
       "actual": 20897.0,
-      "predicted": 21042.39
+      "predicted": 21108.51
     },
     {
       "t": "2024-12-25T02:00:00Z",
       "actual": 20003.0,
-      "predicted": 20429.66
+      "predicted": 20417.05
     },
     {
       "t": "2024-12-25T03:00:00Z",
       "actual": 18725.5,
-      "predicted": 19567.51
+      "predicted": 19772.85
     },
     {
       "t": "2024-12-25T04:00:00Z",
       "actual": 17959.5,
-      "predicted": 18551.21
+      "predicted": 18684.35
     },
     {
       "t": "2024-12-25T05:00:00Z",
       "actual": 18128.0,
-      "predicted": 19491.44
+      "predicted": 18983.06
     },
     {
       "t": "2024-12-25T06:00:00Z",
       "actual": 19692.0,
-      "predicted": 20768.99
+      "predicted": 22765.53
     },
     {
       "t": "2024-12-25T07:00:00Z",
       "actual": 21929.5,
-      "predicted": 23124.8
+      "predicted": 26458.44
     },
     {
       "t": "2024-12-25T08:00:00Z",
       "actual": 24886.5,
-      "predicted": 24733.84
+      "predicted": 26969.86
     },
     {
       "t": "2024-12-25T09:00:00Z",
       "actual": 27197.0,
-      "predicted": 27417.06
+      "predicted": 29401.93
     },
     {
       "t": "2024-12-25T10:00:00Z",
       "actual": 28587.5,
-      "predicted": 29081.67
+      "predicted": 29924.72
     },
     {
       "t": "2024-12-25T11:00:00Z",
       "actual": 29524.0,
-      "predicted": 29847.6
+      "predicted": 30170.28
     },
     {
       "t": "2024-12-25T12:00:00Z",
       "actual": 30781.5,
-      "predicted": 30201.0
+      "predicted": 30533.56
     },
     {
       "t": "2024-12-25T13:00:00Z",
       "actual": 31353.0,
-      "predicted": 30851.52
+      "predicted": 30988.86
     },
     {
       "t": "2024-12-25T14:00:00Z",
       "actual": 31246.0,
-      "predicted": 31588.45
+      "predicted": 31726.68
     },
     {
       "t": "2024-12-25T15:00:00Z",
       "actual": 29578.0,
-      "predicted": 32477.46
+      "predicted": 32013.57
     },
     {
       "t": "2024-12-25T16:00:00Z",
       "actual": 28726.0,
-      "predicted": 31313.28
+      "predicted": 31251.57
     },
     {
       "t": "2024-12-25T17:00:00Z",
       "actual": 27083.5,
-      "predicted": 30557.12
+      "predicted": 31028.52
     },
     {
       "t": "2024-12-25T18:00:00Z",
       "actual": 25735.0,
-      "predicted": 29325.53
+      "predicted": 30625.83
     },
     {
       "t": "2024-12-25T19:00:00Z",
       "actual": 24976.5,
-      "predicted": 27607.48
+      "predicted": 29871.4
     },
     {
       "t": "2024-12-25T20:00:00Z",
       "actual": 24534.0,
-      "predicted": 26883.57
+      "predicted": 27683.61
     },
     {
       "t": "2024-12-25T21:00:00Z",
       "actual": 23305.0,
-      "predicted": 26304.18
+      "predicted": 26265.44
     },
     {
       "t": "2024-12-25T22:00:00Z",
       "actual": 22029.0,
-      "predicted": 23924.32
+      "predicted": 26156.9
     },
     {
       "t": "2024-12-25T23:00:00Z",
       "actual": 21239.0,
-      "predicted": 22823.06
+      "predicted": 23032.12
     },
     {
       "t": "2024-12-26T00:00:00Z",
       "actual": 21171.5,
-      "predicted": 20076.57
+      "predicted": 21712.99
     },
     {
       "t": "2024-12-26T01:00:00Z",
       "actual": 20546.0,
-      "predicted": 20630.66
+      "predicted": 21458.18
     },
     {
       "t": "2024-12-26T02:00:00Z",
       "actual": 19662.5,
-      "predicted": 20060.58
+      "predicted": 20698.54
     },
     {
       "t": "2024-12-26T03:00:00Z",
       "actual": 19020.5,
-      "predicted": 19105.11
+      "predicted": 20130.46
     },
     {
       "t": "2024-12-26T04:00:00Z",
       "actual": 18551.0,
-      "predicted": 18668.97
+      "predicted": 18826.93
     },
     {
       "t": "2024-12-26T05:00:00Z",
       "actual": 18316.5,
-      "predicted": 19647.83
+      "predicted": 20407.45
     },
     {
       "t": "2024-12-26T06:00:00Z",
       "actual": 19519.5,
-      "predicted": 20921.66
+      "predicted": 25544.08
     },
     {
       "t": "2024-12-26T07:00:00Z",
       "actual": 21001.0,
-      "predicted": 22507.79
+      "predicted": 27461.99
     },
     {
       "t": "2024-12-26T08:00:00Z",
       "actual": 23362.5,
-      "predicted": 23644.29
+      "predicted": 27660.52
     },
     {
       "t": "2024-12-26T09:00:00Z",
       "actual": 25832.0,
-      "predicted": 26227.95
+      "predicted": 28087.04
     },
     {
       "t": "2024-12-26T10:00:00Z",
       "actual": 27483.0,
-      "predicted": 27987.44
+      "predicted": 30073.38
     },
     {
       "t": "2024-12-26T11:00:00Z",
       "actual": 28318.0,
-      "predicted": 28908.45
+      "predicted": 29910.79
     },
     {
       "t": "2024-12-26T12:00:00Z",
       "actual": 29159.0,
-      "predicted": 29955.2
+      "predicted": 30206.62
     },
     {
       "t": "2024-12-26T13:00:00Z",
       "actual": 29307.0,
-      "predicted": 30441.18
+      "predicted": 30807.1
     },
     {
       "t": "2024-12-26T14:00:00Z",
       "actual": 29262.5,
-      "predicted": 30648.49
+      "predicted": 31076.53
     },
     {
       "t": "2024-12-26T15:00:00Z",
       "actual": 29713.5,
-      "predicted": 30487.54
+      "predicted": 31317.68
     },
     {
       "t": "2024-12-26T16:00:00Z",
       "actual": 30847.0,
-      "predicted": 30861.59
+      "predicted": 31750.92
     },
     {
       "t": "2024-12-26T17:00:00Z",
       "actual": 31144.0,
-      "predicted": 31770.04
+      "predicted": 32748.33
     },
     {
       "t": "2024-12-26T18:00:00Z",
       "actual": 30567.0,
-      "predicted": 32425.06
+      "predicted": 32949.6
     },
     {
       "t": "2024-12-26T19:00:00Z",
       "actual": 29691.0,
-      "predicted": 31064.23
+      "predicted": 31423.87
     },
     {
       "t": "2024-12-26T20:00:00Z",
       "actual": 28667.0,
-      "predicted": 29668.2
+      "predicted": 28790.4
     },
     {
       "t": "2024-12-26T21:00:00Z",
       "actual": 27104.5,
-      "predicted": 27178.99
+      "predicted": 27885.63
     },
     {
       "t": "2024-12-26T22:00:00Z",
       "actual": 24992.5,
-      "predicted": 25382.02
+      "predicted": 26730.68
     },
     {
       "t": "2024-12-26T23:00:00Z",
       "actual": 23193.5,
-      "predicted": 23474.24
+      "predicted": 25392.55
     },
     {
       "t": "2024-12-27T00:00:00Z",
       "actual": 23132.5,
-      "predicted": 23603.48
+      "predicted": 26021.97
     },
     {
       "t": "2024-12-27T01:00:00Z",
       "actual": 22820.5,
-      "predicted": 23085.02
+      "predicted": 25025.57
     },
     {
       "t": "2024-12-27T02:00:00Z",
       "actual": 21805.0,
-      "predicted": 22428.01
+      "predicted": 24452.11
     },
     {
       "t": "2024-12-27T03:00:00Z",
       "actual": 20950.0,
-      "predicted": 21097.71
+      "predicted": 23658.87
     },
     {
       "t": "2024-12-27T04:00:00Z",
       "actual": 20214.5,
-      "predicted": 20346.81
+      "predicted": 21919.67
     },
     {
       "t": "2024-12-27T05:00:00Z",
       "actual": 20526.0,
-      "predicted": 21526.76
+      "predicted": 23127.92
     },
     {
       "t": "2024-12-27T06:00:00Z",
       "actual": 22847.5,
-      "predicted": 23744.68
+      "predicted": 26319.92
     },
     {
       "t": "2024-12-27T07:00:00Z",
       "actual": 25498.5,
-      "predicted": 27082.39
+      "predicted": 28409.26
     },
     {
       "t": "2024-12-27T08:00:00Z",
       "actual": 27996.0,
-      "predicted": 28655.55
+      "predicted": 30821.53
     },
     {
       "t": "2024-12-27T09:00:00Z",
       "actual": 30567.5,
-      "predicted": 30317.66
+      "predicted": 31608.25
     },
     {
       "t": "2024-12-27T10:00:00Z",
       "actual": 32205.0,
-      "predicted": 31383.15
+      "predicted": 32654.65
     },
     {
       "t": "2024-12-27T11:00:00Z",
       "actual": 32790.5,
-      "predicted": 32593.31
+      "predicted": 32557.77
     },
     {
       "t": "2024-12-27T12:00:00Z",
       "actual": 33247.0,
-      "predicted": 32905.2
+      "predicted": 32768.03
     },
     {
       "t": "2024-12-27T13:00:00Z",
       "actual": 33246.5,
-      "predicted": 33686.24
+      "predicted": 33788.64
     },
     {
       "t": "2024-12-27T14:00:00Z",
       "actual": 33099.5,
-      "predicted": 33791.1
+      "predicted": 33907.92
     },
     {
       "t": "2024-12-27T15:00:00Z",
       "actual": 33454.5,
-      "predicted": 34411.93
+      "predicted": 34539.78
     },
     {
       "t": "2024-12-27T16:00:00Z",
       "actual": 34772.0,
-      "predicted": 34576.52
+      "predicted": 34776.32
     },
     {
       "t": "2024-12-27T17:00:00Z",
       "actual": 35999.0,
-      "predicted": 35311.96
+      "predicted": 35358.02
     },
     {
       "t": "2024-12-27T18:00:00Z",
       "actual": 35192.0,
-      "predicted": 35846.51
+      "predicted": 35573.32
     },
     {
       "t": "2024-12-27T19:00:00Z",
       "actual": 33777.0,
-      "predicted": 34203.25
+      "predicted": 34034.12
     },
     {
       "t": "2024-12-27T20:00:00Z",
       "actual": 32093.5,
-      "predicted": 32104.9
+      "predicted": 31683.15
     },
     {
       "t": "2024-12-27T21:00:00Z",
       "actual": 29825.5,
-      "predicted": 29640.08
+      "predicted": 29334.34
     },
     {
       "t": "2024-12-27T22:00:00Z",
       "actual": 27526.5,
-      "predicted": 27106.01
+      "predicted": 27077.48
     },
     {
       "t": "2024-12-27T23:00:00Z",
       "actual": 25019.0,
-      "predicted": 24736.32
+      "predicted": 24890.44
     },
     {
       "t": "2024-12-28T00:00:00Z",
       "actual": 24830.5,
-      "predicted": 24245.24
+      "predicted": 24675.48
     },
     {
       "t": "2024-12-28T01:00:00Z",
       "actual": 24270.5,
-      "predicted": 24039.91
+      "predicted": 24395.22
     },
     {
       "t": "2024-12-28T02:00:00Z",
       "actual": 22992.5,
-      "predicted": 23076.64
+      "predicted": 23545.29
     },
     {
       "t": "2024-12-28T03:00:00Z",
       "actual": 21785.0,
-      "predicted": 22212.97
+      "predicted": 22199.13
     },
     {
       "t": "2024-12-28T04:00:00Z",
       "actual": 21140.5,
-      "predicted": 21057.83
+      "predicted": 21085.94
     },
     {
       "t": "2024-12-28T05:00:00Z",
       "actual": 21287.5,
-      "predicted": 21516.06
+      "predicted": 21484.8
     },
     {
       "t": "2024-12-28T06:00:00Z",
       "actual": 22487.0,
-      "predicted": 22779.51
+      "predicted": 22377.13
     },
     {
       "t": "2024-12-28T07:00:00Z",
       "actual": 24090.5,
-      "predicted": 24566.24
+      "predicted": 25145.37
     },
     {
       "t": "2024-12-28T08:00:00Z",
       "actual": 26528.0,
-      "predicted": 26380.32
+      "predicted": 27019.77
     },
     {
       "t": "2024-12-28T09:00:00Z",
       "actual": 29462.0,
-      "predicted": 28329.25
+      "predicted": 29284.94
     },
     {
       "t": "2024-12-28T10:00:00Z",
       "actual": 31219.0,
-      "predicted": 30422.23
+      "predicted": 30616.05
     },
     {
       "t": "2024-12-28T11:00:00Z",
       "actual": 31976.5,
-      "predicted": 31951.92
+      "predicted": 31662.83
     },
     {
       "t": "2024-12-28T12:00:00Z",
       "actual": 32644.0,
-      "predicted": 32276.82
+      "predicted": 32501.87
     },
     {
       "t": "2024-12-28T13:00:00Z",
       "actual": 32570.5,
-      "predicted": 32846.55
+      "predicted": 32950.18
     },
     {
       "t": "2024-12-28T14:00:00Z",
       "actual": 32472.0,
-      "predicted": 32881.28
+      "predicted": 33156.35
     },
     {
       "t": "2024-12-28T15:00:00Z",
       "actual": 32927.5,
-      "predicted": 33472.21
+      "predicted": 33746.44
     },
     {
       "t": "2024-12-28T16:00:00Z",
       "actual": 34035.5,
-      "predicted": 33996.43
+      "predicted": 34273.27
     },
     {
       "t": "2024-12-28T17:00:00Z",
       "actual": 35614.0,
-      "predicted": 35058.39
+      "predicted": 35189.53
     },
     {
       "t": "2024-12-28T18:00:00Z",
       "actual": 35086.0,
-      "predicted": 35549.55
+      "predicted": 35380.15
     },
     {
       "t": "2024-12-28T19:00:00Z",
       "actual": 33137.0,
-      "predicted": 33495.71
+      "predicted": 33399.68
     },
     {
       "t": "2024-12-28T20:00:00Z",
       "actual": 30773.0,
-      "predicted": 31176.79
+      "predicted": 30970.6
     },
     {
       "t": "2024-12-28T21:00:00Z",
       "actual": 28635.5,
-      "predicted": 28404.44
+      "predicted": 28195.19
     },
     {
       "t": "2024-12-28T22:00:00Z",
       "actual": 26180.5,
-      "predicted": 25864.65
+      "predicted": 26371.23
     },
     {
       "t": "2024-12-28T23:00:00Z",
       "actual": 23761.0,
-      "predicted": 23435.53
+      "predicted": 23649.83
     },
     {
       "t": "2024-12-29T00:00:00Z",
       "actual": 23052.0,
-      "predicted": 23053.82
+      "predicted": 23011.88
     },
     {
       "t": "2024-12-29T01:00:00Z",
       "actual": 22432.0,
-      "predicted": 22597.5
+      "predicted": 22393.47
     },
     {
       "t": "2024-12-29T02:00:00Z",
       "actual": 21118.5,
-      "predicted": 21905.1
+      "predicted": 21821.38
     },
     {
       "t": "2024-12-29T03:00:00Z",
       "actual": 20128.5,
-      "predicted": 20419.72
+      "predicted": 20335.48
     },
     {
       "t": "2024-12-29T04:00:00Z",
       "actual": 19199.0,
-      "predicted": 19643.31
+      "predicted": 19704.74
     },
     {
       "t": "2024-12-29T05:00:00Z",
       "actual": 19362.0,
-      "predicted": 19688.87
+      "predicted": 19812.19
     },
     {
       "t": "2024-12-29T06:00:00Z",
       "actual": 20233.5,
-      "predicted": 20687.25
+      "predicted": 20321.37
     },
     {
       "t": "2024-12-29T07:00:00Z",
       "actual": 21846.5,
-      "predicted": 21560.55
+      "predicted": 21550.32
     },
     {
       "t": "2024-12-29T08:00:00Z",
       "actual": 23980.5,
-      "predicted": 23716.05
+      "predicted": 24401.75
     },
     {
       "t": "2024-12-29T09:00:00Z",
       "actual": 26080.0,
-      "predicted": 26286.87
+      "predicted": 27176.94
     },
     {
       "t": "2024-12-29T10:00:00Z",
       "actual": 27733.5,
-      "predicted": 28031.17
+      "predicted": 27896.21
     },
     {
       "t": "2024-12-29T11:00:00Z",
       "actual": 28524.0,
-      "predicted": 29176.18
+      "predicted": 28024.4
     },
     {
       "t": "2024-12-29T12:00:00Z",
       "actual": 29295.5,
-      "predicted": 29803.5
+      "predicted": 29316.85
     },
     {
       "t": "2024-12-29T13:00:00Z",
       "actual": 29665.5,
-      "predicted": 30290.26
+      "predicted": 29963.34
     },
     {
       "t": "2024-12-29T14:00:00Z",
       "actual": 29762.0,
-      "predicted": 30247.81
+      "predicted": 30037.37
     },
     {
       "t": "2024-12-29T15:00:00Z",
       "actual": 30669.0,
-      "predicted": 30445.22
+      "predicted": 30486.37
     },
     {
       "t": "2024-12-29T16:00:00Z",
       "actual": 32650.0,
-      "predicted": 32068.01
+      "predicted": 32233.13
     },
     {
       "t": "2024-12-29T17:00:00Z",
       "actual": 33860.5,
-      "predicted": 33839.62
+      "predicted": 34046.83
     },
     {
       "t": "2024-12-29T18:00:00Z",
       "actual": 33440.5,
-      "predicted": 33938.87
+      "predicted": 34208.26
     },
     {
       "t": "2024-12-29T19:00:00Z",
       "actual": 31465.5,
-      "predicted": 32182.77
+      "predicted": 32018.34
     },
     {
       "t": "2024-12-29T20:00:00Z",
       "actual": 29418.5,
-      "predicted": 29715.64
+      "predicted": 29712.82
     },
     {
       "t": "2024-12-29T21:00:00Z",
       "actual": 26838.5,
-      "predicted": 27005.13
+      "predicted": 27185.67
     },
     {
       "t": "2024-12-29T22:00:00Z",
       "actual": 24509.5,
-      "predicted": 24364.38
+      "predicted": 24734.72
     },
     {
       "t": "2024-12-29T23:00:00Z",
       "actual": 21941.5,
-      "predicted": 22194.67
+      "predicted": 22531.03
     },
     {
       "t": "2024-12-30T00:00:00Z",
       "actual": 21943.5,
-      "predicted": 20875.61
+      "predicted": 21471.2
     },
     {
       "t": "2024-12-30T01:00:00Z",
       "actual": 21439.0,
-      "predicted": 21432.23
+      "predicted": 21326.13
     },
     {
       "t": "2024-12-30T02:00:00Z",
       "actual": 20354.5,
-      "predicted": 20883.69
+      "predicted": 20836.08
     },
     {
       "t": "2024-12-30T03:00:00Z",
       "actual": 19386.5,
-      "predicted": 19928.08
+      "predicted": 20008.06
     },
     {
       "t": "2024-12-30T04:00:00Z",
       "actual": 18792.5,
-      "predicted": 19049.09
+      "predicted": 19158.31
     },
     {
       "t": "2024-12-30T05:00:00Z",
       "actual": 19439.0,
-      "predicted": 19989.04
+      "predicted": 19229.77
     },
     {
       "t": "2024-12-30T06:00:00Z",
       "actual": 21619.5,
-      "predicted": 22651.54
+      "predicted": 23096.1
     },
     {
       "t": "2024-12-30T07:00:00Z",
       "actual": 23939.0,
-      "predicted": 25679.68
+      "predicted": 26520.28
     },
     {
       "t": "2024-12-30T08:00:00Z",
       "actual": 26345.0,
-      "predicted": 26527.35
+      "predicted": 27928.1
     },
     {
       "t": "2024-12-30T09:00:00Z",
       "actual": 27897.5,
-      "predicted": 28938.37
+      "predicted": 30118.79
     },
     {
       "t": "2024-12-30T10:00:00Z",
       "actual": 28413.0,
-      "predicted": 29107.16
+      "predicted": 29698.36
     },
     {
       "t": "2024-12-30T11:00:00Z",
       "actual": 28176.0,
-      "predicted": 29299.11
+      "predicted": 29671.11
     },
     {
       "t": "2024-12-30T12:00:00Z",
       "actual": 28644.5,
-      "predicted": 29031.22
+      "predicted": 29381.13
     },
     {
       "t": "2024-12-30T13:00:00Z",
       "actual": 28955.5,
-      "predicted": 29299.5
+      "predicted": 29690.54
     },
     {
       "t": "2024-12-30T14:00:00Z",
       "actual": 29725.5,
-      "predicted": 29645.41
+      "predicted": 30012.2
     },
     {
       "t": "2024-12-30T15:00:00Z",
       "actual": 31715.0,
-      "predicted": 30793.36
+      "predicted": 30574.98
     },
     {
       "t": "2024-12-30T16:00:00Z",
       "actual": 33464.5,
-      "predicted": 33445.84
+      "predicted": 33668.29
     },
     {
       "t": "2024-12-30T17:00:00Z",
       "actual": 35052.5,
-      "predicted": 34936.06
+      "predicted": 34857.48
     },
     {
       "t": "2024-12-30T18:00:00Z",
       "actual": 34437.5,
-      "predicted": 35308.31
+      "predicted": 35034.04
     },
     {
       "t": "2024-12-30T19:00:00Z",
       "actual": 33184.5,
-      "predicted": 33595.28
+      "predicted": 32959.82
     },
     {
       "t": "2024-12-30T20:00:00Z",
       "actual": 31053.0,
-      "predicted": 31231.37
+      "predicted": 31030.8
     },
     {
       "t": "2024-12-30T21:00:00Z",
       "actual": 28415.5,
-      "predicted": 28476.27
+      "predicted": 28210.88
     },
     {
       "t": "2024-12-30T22:00:00Z",
       "actual": 25819.0,
-      "predicted": 25323.8
+      "predicted": 25712.02
     },
     {
       "t": "2024-12-30T23:00:00Z",
       "actual": 23371.5,
-      "predicted": 23139.57
+      "predicted": 23319.97
     },
     {
       "t": "2024-12-31T00:00:00Z",
       "actual": 22110.5,
-      "predicted": 22373.67
+      "predicted": 22532.02
     },
     {
       "t": "2024-12-31T01:00:00Z",
       "actual": 20916.0,
-      "predicted": 21529.08
+      "predicted": 21524.95
     },
     {
       "t": "2024-12-31T02:00:00Z",
       "actual": 19818.5,
-      "predicted": 20440.33
+      "predicted": 20368.3
     },
     {
       "t": "2024-12-31T03:00:00Z",
       "actual": 18908.0,
-      "predicted": 19294.54
+      "predicted": 19549.24
     },
     {
       "t": "2024-12-31T04:00:00Z",
       "actual": 18452.0,
-      "predicted": 18612.81
+      "predicted": 18694.42
     },
     {
       "t": "2024-12-31T05:00:00Z",
       "actual": 18593.0,
-      "predicted": 19573.69
+      "predicted": 18950.54
     },
     {
       "t": "2024-12-31T06:00:00Z",
       "actual": 20402.5,
-      "predicted": 21451.71
+      "predicted": 20738.5
     },
     {
       "t": "2024-12-31T07:00:00Z",
       "actual": 22782.0,
-      "predicted": 24205.14
+      "predicted": 23261.06
     },
     {
       "t": "2024-12-31T08:00:00Z",
       "actual": 24936.5,
-      "predicted": 25106.16
+      "predicted": 26409.17
     },
     {
       "t": "2024-12-31T09:00:00Z",
       "actual": 26856.5,
-      "predicted": 27320.02
+      "predicted": 28929.79
     },
     {
       "t": "2024-12-31T10:00:00Z",
       "actual": 28059.0,
-      "predicted": 28471.06
+      "predicted": 29278.37
     },
     {
       "t": "2024-12-31T11:00:00Z",
       "actual": 28287.0,
-      "predicted": 28965.67
+      "predicted": 29145.98
     },
     {
       "t": "2024-12-31T12:00:00Z",
       "actual": 28959.0,
-      "predicted": 29193.95
+      "predicted": 29266.77
     },
     {
       "t": "2024-12-31T13:00:00Z",
       "actual": 29413.0,
-      "predicted": 29477.74
+      "predicted": 29891.78
     },
     {
       "t": "2024-12-31T14:00:00Z",
       "actual": 29404.0,
-      "predicted": 30190.67
+      "predicted": 30114.63
     },
     {
       "t": "2024-12-31T15:00:00Z",
       "actual": 30448.5,
-      "predicted": 30307.8
+      "predicted": 30493.27
     },
     {
       "t": "2024-12-31T16:00:00Z",
       "actual": 31704.5,
-      "predicted": 31481.14
+      "predicted": 31737.18
     },
     {
       "t": "2024-12-31T17:00:00Z",
       "actual": 32419.0,
-      "predicted": 32930.13
+      "predicted": 33394.09
     },
     {
       "t": "2024-12-31T18:00:00Z",
       "actual": 31407.0,
-      "predicted": 32356.19
+      "predicted": 33430.1
     },
     {
       "t": "2024-12-31T19:00:00Z",
       "actual": 28886.5,
-      "predicted": 31082.83
+      "predicted": 30635.8
     },
     {
       "t": "2024-12-31T20:00:00Z",
       "actual": 26448.0,
-      "predicted": 28995.6
+      "predicted": 27445.13
     },
     {
       "t": "2024-12-31T21:00:00Z",
       "actual": 24045.5,
-      "predicted": 26129.19
+      "predicted": 26190.83
     },
     {
       "t": "2024-12-31T22:00:00Z",
       "actual": 22108.0,
-      "predicted": 22824.59
+      "predicted": 23119.85
     },
     {
       "t": "2024-12-31T23:00:00Z",
       "actual": 20894.0,
-      "predicted": 20509.74
+      "predicted": 22672.0
     }
   ]
 }

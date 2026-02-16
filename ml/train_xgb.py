@@ -11,6 +11,8 @@ Usage:
 import argparse
 import numpy as np
 import pandas as pd
+import joblib
+from pathlib import Path
 from xgboost import XGBRegressor
 
 from utils import (
@@ -120,6 +122,13 @@ def main():
         n_jobs=-1,
     )
     model.fit(X_train, y_train)
+
+    # Save model for SHAP analysis
+    outputs_root = Path(__file__).parent.parent / "outputs" / config.folder_name / "models"
+    outputs_root.mkdir(parents=True, exist_ok=True)
+    model_path = outputs_root / f"xgb_{horizon}.joblib"
+    joblib.dump({"model": model, "features": feature_cols}, model_path)
+    print(f"Saved model: {model_path}")
 
     # Predict
     y_pred = model.predict(X_test)

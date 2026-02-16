@@ -11,6 +11,8 @@ Usage:
 import argparse
 import numpy as np
 import pandas as pd
+import joblib
+from pathlib import Path
 from sklearn.linear_model import LinearRegression
 
 from utils import (
@@ -111,6 +113,15 @@ def main():
     # Train model
     model = LinearRegression()
     model.fit(X_train, y_train)
+
+    # Save model for SHAP analysis (include background data for LinearExplainer)
+    outputs_root = Path(__file__).parent.parent / "outputs" / config.folder_name / "models"
+    outputs_root.mkdir(parents=True, exist_ok=True)
+    bg_idx = np.random.choice(len(X_train), min(100, len(X_train)), replace=False)
+    background = X_train.iloc[bg_idx].values
+    model_path = outputs_root / f"linear_{horizon}.joblib"
+    joblib.dump({"model": model, "features": feature_cols, "background": background}, model_path)
+    print(f"Saved model: {model_path}")
 
     # Predict
     y_pred = model.predict(X_test)

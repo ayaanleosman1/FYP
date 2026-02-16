@@ -3,9 +3,9 @@
   "granularity": "D",
   "granularity_name": "daily",
   "horizon": 7,
-  "mae": 24290.29,
-  "rmse": 29873.55,
-  "smape": 3.45,
-  "mape": 3.45,
+  "mae": 27185.98,
+  "rmse": 33558.05,
+  "smape": 3.89,
+  "mape": 3.96,
   "note": "Baseline model to validate end-to-end pipeline."
 }
