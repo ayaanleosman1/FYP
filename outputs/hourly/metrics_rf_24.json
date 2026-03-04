@@ -3,8 +3,8 @@
   "granularity": "H",
   "granularity_name": "hourly",
   "horizon": 24,
-  "mae": 1089.07,
-  "rmse": 1619.63,
-  "smape": 4.22,
-  "mape": 4.44
+  "mae": 955.76,
+  "rmse": 1304.23,
+  "smape": 3.73,
+  "mape": 3.86
 }

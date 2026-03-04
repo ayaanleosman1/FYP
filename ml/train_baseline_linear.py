@@ -1,13 +1,3 @@
-"""
-Train Linear Regression baseline model for demand forecasting.
-
-Usage:
-    python train_baseline_linear.py                           # Default: hourly, horizon=24
-    python train_baseline_linear.py --granularity D           # Daily with default horizon
-    python train_baseline_linear.py --granularity D --horizon 14  # Daily, 14-day horizon
-    python train_baseline_linear.py --granularity W --days 730    # Weekly with 2 years of data
-"""
-
 import argparse
 import numpy as np
 import pandas as pd
@@ -29,49 +19,20 @@ from utils.data import train_test_split_temporal, get_recommended_days_for_granu
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Linear Regression baseline model")
-    parser.add_argument(
-        "--granularity", "-g",
-        type=str,
-        default="H",
-        choices=["H", "D", "W", "M", "Y"],
-        help="Forecast granularity: H=hourly, D=daily, W=weekly, M=monthly, Y=yearly"
-    )
-    parser.add_argument(
-        "--horizon", "-hz",
-        type=int,
-        default=None,
-        help="Forecast horizon in periods (default: granularity-specific)"
-    )
-    parser.add_argument(
-        "--days", "-d",
-        type=int,
-        default=None,
-        help="Days of training data (default: granularity-specific)"
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed for reproducibility"
-    )
-    parser.add_argument(
-        "--source", "-s",
-        type=str,
-        default="real",
-        choices=["real", "synthetic"],
-        help="Data source: real (UK NESO data) or synthetic (for testing only)"
-    )
+    parser.add_argument("--granularity", "-g", type=str, default="H", choices=["H", "D", "W", "M", "Y"])
+    parser.add_argument("--horizon", "-hz", type=int, default=None)
+    parser.add_argument("--days", "-d", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--source", "-s", type=str, default="real", choices=["real", "synthetic"])
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    # Parse granularity
     granularity = Granularity.from_code(args.granularity)
     config = granularity.config
 
-    # Set defaults based on granularity
     horizon = args.horizon or config.default_horizon
     n_days = args.days or get_recommended_days_for_granularity(granularity)
     test_periods = config.default_test_periods
@@ -83,24 +44,19 @@ def main():
     print(f"  Source: {args.source}")
     print()
 
-    # Get data at the specified granularity
     df = get_data_for_granularity(n_days=n_days, granularity=granularity, seed=args.seed, source=args.source)
     print(f"Data shape: {df.shape}")
     print(f"Date range: {df.index.min()} to {df.index.max()}")
 
-    # Build features
     feat = build_features(df, granularity=granularity)
     print(f"Features shape after engineering: {feat.shape}")
 
-    # Get available feature columns
     feature_cols = get_available_features(feat, granularity)
     print(f"Features: {feature_cols}")
 
-    # Prepare X and y
     X = feat[feature_cols]
     y = feat["demand"]
 
-    # Train/test split
     train_df, test_df = train_test_split_temporal(feat, test_periods, granularity)
     X_train = train_df[feature_cols]
     y_train = train_df["demand"]
@@ -110,11 +66,9 @@ def main():
     print(f"Train size: {len(X_train)}, Test size: {len(X_test)}")
     print()
 
-    # Train model
     model = LinearRegression()
     model.fit(X_train, y_train)
 
-    # Save model for SHAP analysis (include background data for LinearExplainer)
     outputs_root = Path(__file__).parent.parent / "outputs" / config.folder_name / "models"
     outputs_root.mkdir(parents=True, exist_ok=True)
     bg_idx = np.random.choice(len(X_train), min(100, len(X_train)), replace=False)
@@ -123,32 +77,25 @@ def main():
     joblib.dump({"model": model, "features": feature_cols, "background": background}, model_path)
     print(f"Saved model: {model_path}")
 
-    # Predict
     y_pred = model.predict(X_test)
 
-    # Compute metrics
     metrics = compute_all_metrics(y_test.values, y_pred)
     print("Metrics:")
     for k, v in metrics.items():
         print(f"  {k}: {v}")
     print()
 
-    # Prepare predictions for output
     test_df = test_df.copy()
     test_df["predicted"] = y_pred
     predictions = format_predictions_for_api(test_df, actual_col="demand", pred_col="predicted")
 
-    # Save outputs
-    extra_metrics = {
-        "note": "Baseline model to validate end-to-end pipeline."
-    }
     metrics_path, preds_path = save_outputs(
         granularity=granularity,
         model="linear",
         horizon=horizon,
         metrics=metrics,
         predictions=predictions,
-        extra_metrics=extra_metrics,
+        extra_metrics={"note": "Baseline model to validate end-to-end pipeline."},
     )
 
     print("Saved:")

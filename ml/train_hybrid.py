@@ -98,7 +98,6 @@ def train_prophet(train_df: pd.DataFrame, granularity: Granularity) -> Prophet:
     """
     Train Prophet model with appropriate seasonality settings.
     """
-    # Configure Prophet based on granularity
     prophet_config = {
         Granularity.HOURLY: {
             'daily_seasonality': True,
@@ -187,23 +186,15 @@ def main():
     print(f"Train: {len(train_df)}, Test: {len(test_df)}")
     print()
 
-    # =========================================
-    # Step 1: Train Prophet on trend/seasonality
-    # =========================================
     print("Step 1: Training Prophet for trend and seasonality...")
     prophet_model = train_prophet(train_df, granularity)
 
-    # Get Prophet predictions on training data
     train_prophet_pred = get_prophet_predictions(prophet_model, train_df)
 
-    # Calculate residuals (what Prophet can't explain)
     train_residuals = train_df['demand'].values - train_prophet_pred
     print(f"  Prophet train RMSE: {np.sqrt(np.mean(train_residuals**2)):.2f}")
     print()
 
-    # =========================================
-    # Step 2: Train XGBoost on residuals
-    # =========================================
     print("Step 2: Training XGBoost on residuals...")
 
     X_train = train_df[feature_cols]
@@ -224,9 +215,6 @@ def main():
     print(f"  XGBoost residual RMSE: {np.sqrt(np.mean((train_residuals - train_xgb_residual_pred)**2)):.2f}")
     print()
 
-    # =========================================
-    # Step 3: Make predictions on test set
-    # =========================================
     print("Step 3: Making predictions on test set...")
 
     # Prophet component
@@ -236,13 +224,9 @@ def main():
     X_test = test_df[feature_cols]
     test_xgb_residual_pred = xgb_model.predict(X_test)
 
-    # Hybrid prediction = Prophet + XGBoost residual
     y_pred = test_prophet_pred + test_xgb_residual_pred
     y_test = test_df['demand'].values
 
-    # =========================================
-    # Step 4: Evaluate and compare
-    # =========================================
     print()
     print("=" * 60)
     print("Results Comparison")
@@ -279,9 +263,6 @@ def main():
         print(f"  {name:20s} {imp:.4f}  {bar}")
     print()
 
-    # =========================================
-    # Step 5: Save outputs
-    # =========================================
     outputs_root = Path(__file__).parent.parent / "outputs" / config.folder_name
     outputs_root.mkdir(parents=True, exist_ok=True)
 
@@ -300,12 +281,12 @@ def main():
     print(f"Saved Prophet model: {prophet_path}")
     print(f"Saved XGBoost model: {xgb_path}")
 
-    # Prepare predictions for output
+
     test_df = test_df.copy()
     test_df["predicted"] = y_pred
     predictions = format_predictions_for_api(test_df, actual_col="demand", pred_col="predicted")
 
-    # Save outputs using standard format
+
     metrics_path, preds_path = save_outputs(
         granularity=granularity,
         model="hybrid",
@@ -317,7 +298,7 @@ def main():
     print(f"Saved: {metrics_path}")
     print(f"Saved: {preds_path}")
 
-    # Save comparison data
+
     comparison_path = outputs_root / f"comparison_hybrid_{horizon}.json"
     with open(comparison_path, 'w') as f:
         json.dump({

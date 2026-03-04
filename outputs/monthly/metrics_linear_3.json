@@ -3,9 +3,9 @@
   "granularity": "M",
   "granularity_name": "monthly",
   "horizon": 3,
-  "mae": 2601046.71,
-  "rmse": 3099895.99,
-  "smape": 13.23,
-  "mape": 13.39,
+  "mae": 719035.85,
+  "rmse": 979105.7,
+  "smape": 3.8,
+  "mape": 3.68,
   "note": "Baseline model to validate end-to-end pipeline."
 }

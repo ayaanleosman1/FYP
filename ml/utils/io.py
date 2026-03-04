@@ -1,17 +1,3 @@
-"""
-Input/Output utilities for saving and loading model outputs.
-
-Outputs are organized by granularity:
-    outputs/
-    ├── hourly/
-    │   ├── metrics_xgb_24.json
-    │   └── preds_xgb_24.json
-    ├── daily/
-    │   ├── metrics_xgb_7.json
-    │   └── preds_xgb_7.json
-    └── ...
-"""
-
 import json
 from pathlib import Path
 from typing import Union, Optional
@@ -20,61 +6,20 @@ import pandas as pd
 from .granularity import Granularity, GRANULARITY_CONFIG
 
 
-def get_outputs_root() -> Path:
-    """Get the root outputs directory."""
-    # Navigate from ml/utils/ to project root
+def get_outputs_root():
     return Path(__file__).parent.parent.parent / "outputs"
 
 
-def get_output_path(
-    granularity: Granularity,
-    file_type: str,  # "metrics" or "preds"
-    model: str,
-    horizon: int,
-) -> Path:
-    """
-    Get the path for an output file.
-
-    Args:
-        granularity: The forecast granularity
-        file_type: Either "metrics" or "preds"
-        model: Model name (xgb, rf, linear)
-        horizon: Forecast horizon in periods
-
-    Returns:
-        Path to the output file
-    """
+def get_output_path(granularity, file_type, model, horizon):
     folder = get_outputs_root() / granularity.config.folder_name
     return folder / f"{file_type}_{model}_{horizon}.json"
 
 
-def save_outputs(
-    granularity: Granularity,
-    model: str,
-    horizon: int,
-    metrics: dict,
-    predictions: list[dict],
-    extra_metrics: Optional[dict] = None,
-) -> tuple[Path, Path]:
-    """
-    Save model metrics and predictions to JSON files.
-
-    Args:
-        granularity: The forecast granularity
-        model: Model name (xgb, rf, linear)
-        horizon: Forecast horizon in periods
-        metrics: Dictionary of metric values
-        predictions: List of {t, actual, predicted} dicts
-        extra_metrics: Optional extra fields to include in metrics file
-
-    Returns:
-        Tuple of (metrics_path, preds_path)
-    """
+def save_outputs(granularity, model, horizon, metrics, predictions, extra_metrics=None):
     config = granularity.config
     folder = get_outputs_root() / config.folder_name
     folder.mkdir(parents=True, exist_ok=True)
 
-    # Build metrics output
     metrics_out = {
         "model": model,
         "granularity": config.code,
@@ -85,7 +30,6 @@ def save_outputs(
     if extra_metrics:
         metrics_out.update(extra_metrics)
 
-    # Build predictions output
     preds_out = {
         "model": model,
         "granularity": config.code,
@@ -94,7 +38,6 @@ def save_outputs(
         "series": predictions,
     }
 
-    # Write files
     metrics_path = folder / f"metrics_{model}_{horizon}.json"
     preds_path = folder / f"preds_{model}_{horizon}.json"
 
@@ -107,24 +50,7 @@ def save_outputs(
     return metrics_path, preds_path
 
 
-def load_outputs(
-    granularity: Granularity,
-    file_type: str,
-    model: str,
-    horizon: int,
-) -> Optional[dict]:
-    """
-    Load output file if it exists.
-
-    Args:
-        granularity: The forecast granularity
-        file_type: Either "metrics" or "preds"
-        model: Model name
-        horizon: Forecast horizon
-
-    Returns:
-        Parsed JSON dict or None if file doesn't exist
-    """
+def load_outputs(granularity, file_type, model, horizon):
     path = get_output_path(granularity, file_type, model, horizon)
     if not path.exists():
         return None
@@ -132,24 +58,7 @@ def load_outputs(
         return json.load(f)
 
 
-def load_legacy_outputs(
-    file_type: str,
-    model: str,
-    horizon: int,
-) -> Optional[dict]:
-    """
-    Load legacy output files from the root outputs/ folder (pre-granularity structure).
-
-    This provides backward compatibility with existing outputs.
-
-    Args:
-        file_type: Either "metrics" or "preds"
-        model: Model name
-        horizon: Forecast horizon
-
-    Returns:
-        Parsed JSON dict or None if file doesn't exist
-    """
+def load_legacy_outputs(file_type, model, horizon):
     path = get_outputs_root() / f"{file_type}_{model}_{horizon}.json"
     if not path.exists():
         return None
@@ -157,16 +66,7 @@ def load_legacy_outputs(
         return json.load(f)
 
 
-def list_available_models(granularity: Optional[Granularity] = None) -> dict:
-    """
-    List all available trained models by granularity.
-
-    Args:
-        granularity: Optional specific granularity to check
-
-    Returns:
-        Dict mapping granularity codes to lists of {model, horizon} dicts
-    """
+def list_available_models(granularity=None):
     outputs_root = get_outputs_root()
     available = {}
 
@@ -180,7 +80,6 @@ def list_available_models(granularity: Optional[Granularity] = None) -> dict:
 
         models = []
         for f in folder.glob("metrics_*.json"):
-            # Parse filename: metrics_{model}_{horizon}.json
             parts = f.stem.split("_")
             if len(parts) >= 3:
                 model = parts[1]
@@ -191,11 +90,10 @@ def list_available_models(granularity: Optional[Granularity] = None) -> dict:
                     continue
         available[g.value] = models
 
-    # Also check legacy files in root outputs/
+    # also check legacy files in root outputs/
     if granularity is None or granularity == Granularity.HOURLY:
         legacy_models = []
         for f in outputs_root.glob("metrics_*.json"):
-            # Skip files in subdirectories
             if f.parent != outputs_root:
                 continue
             parts = f.stem.split("_")
@@ -209,7 +107,6 @@ def list_available_models(granularity: Optional[Granularity] = None) -> dict:
         if legacy_models:
             if "H" not in available:
                 available["H"] = []
-            # Add legacy models if not already present
             existing = {(m["model"], m["horizon"]) for m in available["H"]}
             for lm in legacy_models:
                 if (lm["model"], lm["horizon"]) not in existing:
@@ -218,22 +115,7 @@ def list_available_models(granularity: Optional[Granularity] = None) -> dict:
     return available
 
 
-def format_predictions_for_api(
-    df: pd.DataFrame,
-    actual_col: str = "demand",
-    pred_col: str = "predicted",
-) -> list[dict]:
-    """
-    Format a predictions DataFrame for JSON output.
-
-    Args:
-        df: DataFrame with datetime index, actual and predicted columns
-        actual_col: Name of the actual values column
-        pred_col: Name of the predicted values column
-
-    Returns:
-        List of {t, actual, predicted} dicts
-    """
+def format_predictions_for_api(df, actual_col="demand", pred_col="predicted"):
     records = []
     for idx, row in df.iterrows():
         records.append({

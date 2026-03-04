@@ -3,8 +3,8 @@
   "granularity": "D",
   "granularity_name": "daily",
   "horizon": 7,
-  "mae": 35196.59,
-  "rmse": 42414.93,
-  "smape": 5.01,
-  "mape": 5.01
+  "mae": 35138.26,
+  "rmse": 42506.3,
+  "smape": 4.92,
+  "mape": 4.86
 }

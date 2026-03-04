@@ -77,6 +77,47 @@ const FEATURE_CATEGORIES = {
 
 const SCENARIO_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
 
+const APPLIANCES = [
+  { id: 'kettle', name: 'Kettle', icon: '☕', kw: 2.0, durationMin: 5, category: 'kitchen' },
+  { id: 'microwave', name: 'Microwave', icon: '📡', kw: 1.0, durationMin: 10, category: 'kitchen' },
+  { id: 'oven', name: 'Electric Oven', icon: '🍳', kw: 2.0, durationMin: 60, category: 'kitchen' },
+  { id: 'dishwasher', name: 'Dishwasher', icon: '🍽️', kw: 1.8, durationMin: 90, category: 'kitchen', flexible: true },
+  { id: 'fridge', name: 'Fridge Freezer', icon: '🧊', kw: 0.15, durationMin: 1440, category: 'kitchen', alwaysOn: true },
+  { id: 'washing', name: 'Washing Machine', icon: '👕', kw: 0.5, durationMin: 60, category: 'laundry', flexible: true },
+  { id: 'dryer', name: 'Tumble Dryer', icon: '💨', kw: 2.5, durationMin: 60, category: 'laundry', flexible: true },
+  { id: 'iron', name: 'Iron', icon: '👔', kw: 1.0, durationMin: 30, category: 'laundry', flexible: true },
+  { id: 'tv', name: 'TV', icon: '📺', kw: 0.1, durationMin: 180, category: 'entertainment' },
+  { id: 'console', name: 'Games Console', icon: '🎮', kw: 0.2, durationMin: 120, category: 'entertainment' },
+  { id: 'pc', name: 'Desktop PC', icon: '🖥️', kw: 0.3, durationMin: 240, category: 'entertainment' },
+  { id: 'laptop', name: 'Laptop Charger', icon: '💻', kw: 0.065, durationMin: 120, category: 'entertainment' },
+  { id: 'shower', name: 'Electric Shower', icon: '🚿', kw: 8.5, durationMin: 10, category: 'home' },
+  { id: 'heater', name: 'Space Heater', icon: '🔥', kw: 2.0, durationMin: 120, category: 'home' },
+  { id: 'hairdryer', name: 'Hair Dryer', icon: '💇', kw: 1.5, durationMin: 10, category: 'home' },
+  { id: 'vacuum', name: 'Vacuum Cleaner', icon: '🧹', kw: 0.7, durationMin: 30, category: 'home', flexible: true },
+  { id: 'ev', name: 'EV Charger', icon: '🚗', kw: 7.0, durationMin: 240, category: 'other', flexible: true },
+  { id: 'lights', name: 'LED Lights (10)', icon: '💡', kw: 0.1, durationMin: 480, category: 'other', alwaysOn: true },
+  { id: 'phone', name: 'Phone Charger', icon: '📱', kw: 0.02, durationMin: 60, category: 'other' },
+  { id: 'airfryer', name: 'Air Fryer', icon: '🍟', kw: 1.5, durationMin: 25, category: 'kitchen' },
+]
+
+const APPLIANCE_CATEGORIES = {
+  kitchen: { label: 'Kitchen', icon: '🍳' },
+  laundry: { label: 'Laundry', icon: '👕' },
+  entertainment: { label: 'Entertainment', icon: '🎮' },
+  home: { label: 'Home', icon: '🏠' },
+  other: { label: 'Other', icon: '⚡' },
+}
+
+function estimatePrice(demandMW) {
+  // UK retail ~24p/kWh average, varies with demand
+  return Math.max(15, Math.min(45, 24 + (demandMW - 30000) / 1500))
+}
+
+function estimateCarbon(demandMW) {
+  // gCO2/kWh - more demand = more gas plants = more carbon
+  return Math.max(80, Math.min(400, 180 + (demandMW - 25000) / 80))
+}
+
 function App() {
   const [granularities, setGranularities] = useState([])
   const [available, setAvailable] = useState({})
@@ -91,6 +132,9 @@ function App() {
   const [shapLoading, setShapLoading] = useState(false)
   const [shapModel, setShapModel] = useState('xgb')
   const [shapAvailableModels, setShapAvailableModels] = useState([])
+  // SHAP AI explanation
+  const [shapExplanation, setShapExplanation] = useState(null)
+  const [shapExplainLoading, setShapExplainLoading] = useState(false)
   // EBM shapes state
   const [ebmShapes, setEbmShapes] = useState(null)
   const [ebmLoading, setEbmLoading] = useState(false)
@@ -100,6 +144,15 @@ function App() {
   const [chatMessages, setChatMessages] = useState([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+
+  // Live Forecast state (used by Smart Home)
+  const [liveData, setLiveData] = useState(null)
+  const [liveLoading, setLiveLoading] = useState(false)
+
+  // Energy Advisor state
+  const [selectedAppliances, setSelectedAppliances] = useState([])
+  const [aiTips, setAiTips] = useState(null)
+  const [aiTipsLoading, setAiTipsLoading] = useState(false)
 
   // What-If state
   const [whatIfFeatures, setWhatIfFeatures] = useState(null)
@@ -393,6 +446,19 @@ function App() {
     }
   }
 
+  const loadLiveForecast = async () => {
+    setLiveLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/live-forecast?granularity=H&horizon=24&temp_offset=0`)
+      const data = await res.json()
+      setLiveData(data)
+    } catch (err) {
+      console.error('Live forecast error:', err)
+    } finally {
+      setLiveLoading(false)
+    }
+  }
+
   // Send chat message
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading) return
@@ -448,6 +514,15 @@ function App() {
             Forecast
           </button>
           <button
+            className={`nav-link ${activeTab === 'smarthome' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('smarthome')
+              if (!liveData) loadLiveForecast()
+            }}
+          >
+            Energy Advisor
+          </button>
+          <button
             className={`nav-link ${activeTab === 'whatif' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('whatif')
@@ -467,15 +542,6 @@ function App() {
             SHAP Analysis
           </button>
           <button
-            className={`nav-link ${activeTab === 'ebm' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('ebm')
-              loadEbmShapes()
-            }}
-          >
-            EBM Shapes
-          </button>
-          <button
             className={`nav-link chat-link ${chatOpen ? 'active' : ''}`}
             onClick={() => setChatOpen(!chatOpen)}
           >
@@ -487,7 +553,6 @@ function App() {
 
       <header className="header">
         <h1>UK Electricity Demand Forecasting</h1>
-        <p className="subtitle">ML models trained on 16 years of real National Grid data</p>
         <div className="data-badge">
           <span className="badge-item">
             <span className="badge-icon">&#9889;</span>
@@ -1048,6 +1113,302 @@ function App() {
       </>
       )}
 
+      {/* Smart Home Section */}
+      {activeTab === 'smarthome' && (
+        <div className="tab-content smarthome-tab">
+          <div className="sh-header">
+            <h2>Energy Advisor</h2>
+            <p className="sh-subtitle">Select your household appliances and get AI-powered insights on your energy usage</p>
+          </div>
+
+          {!liveData ? (
+            <div className="loading"><div className="spinner"></div>Loading forecast data...</div>
+          ) : (() => {
+            const curve = liveData.hourly_curve || []
+            const now = liveData.time?.hour || new Date().getHours()
+
+            const hourlyData = curve.map(h => ({
+              ...h,
+              price: estimatePrice(h.demand),
+              carbon: estimateCarbon(h.demand),
+            }))
+
+            const selected = selectedAppliances.map(id => APPLIANCES.find(x => x.id === id)).filter(Boolean)
+            const totalKwh = selected.reduce((sum, a) => sum + a.kw * (a.durationMin / 60), 0)
+
+            const futureHours = hourlyData.filter(h => h.hour >= now)
+            const sortedByPrice = [...(futureHours.length > 0 ? futureHours : hourlyData)].sort((a, b) => a.price - b.price)
+            const cheapestHour = sortedByPrice[0]
+            const expensiveHour = sortedByPrice[sortedByPrice.length - 1]
+            const currentHour = hourlyData.find(h => h.hour === now) || hourlyData[0]
+
+            const costNow = totalKwh * (currentHour?.price || 24) / 100
+            const costBest = totalKwh * (cheapestHour?.price || 20) / 100
+            const savings = costNow - costBest
+            const costPeak = totalKwh * (expensiveHour?.price || 40) / 100
+
+            const carbonNow = totalKwh * (currentHour?.carbon || 200)
+            const carbonBest = totalKwh * (cheapestHour?.carbon || 150)
+            const carbonSaved = carbonNow - carbonBest
+
+            const dailyCostEstimate = selected.reduce((sum, a) => {
+              const kwh = a.kw * (a.durationMin / 60)
+              const avgPrice = hourlyData.reduce((s, h) => s + h.price, 0) / (hourlyData.length || 1)
+              return sum + kwh * avgPrice / 100
+            }, 0)
+            const monthlyCost = dailyCostEstimate * 30
+            const yearlyCost = dailyCostEstimate * 365
+
+            const chartData = hourlyData.map(h => ({
+              hour: h.hour,
+              price: Math.round(h.price * 100) / 100,
+              carbon: Math.round(h.carbon),
+              zone: h.price <= sortedByPrice[Math.floor(sortedByPrice.length * 0.33)]?.price ? 'green' :
+                    h.price >= sortedByPrice[Math.floor(sortedByPrice.length * 0.66)]?.price ? 'red' : 'amber',
+            }))
+
+            const fetchAiTips = async () => {
+              setAiTipsLoading(true)
+              try {
+                const res = await fetch(`${API_BASE}/advisor`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    appliances: selected.map(a => a.name),
+                    total_kwh: totalKwh,
+                    daily_cost: dailyCostEstimate,
+                    monthly_cost: monthlyCost,
+                    yearly_cost: yearlyCost,
+                    cheapest_hour: cheapestHour.hour,
+                    peak_hour: expensiveHour.hour,
+                    current_price: currentHour.price,
+                    cheapest_price: cheapestHour.price,
+                    peak_price: expensiveHour.price,
+                  })
+                })
+                const data = await res.json()
+                setAiTips(data.tips)
+              } catch (err) {
+                console.error('Advisor error:', err)
+              } finally {
+                setAiTipsLoading(false)
+              }
+            }
+
+            return (
+              <>
+                {/* Appliance selector grouped by category */}
+                <div className="sh-appliances">
+                  <div className="sh-appliances-header">
+                    <h3>Select Your Appliances</h3>
+                    <span className="sh-selected-count">{selectedAppliances.length} selected</span>
+                  </div>
+                  {Object.entries(APPLIANCE_CATEGORIES).map(([catKey, cat]) => {
+                    const catAppliances = APPLIANCES.filter(a => a.category === catKey)
+                    if (catAppliances.length === 0) return null
+                    return (
+                      <div key={catKey} className="appliance-category">
+                        <div className="category-label">
+                          <span>{cat.icon}</span>
+                          <span>{cat.label}</span>
+                        </div>
+                        <div className="appliance-grid">
+                          {catAppliances.map(a => {
+                            const isSelected = selectedAppliances.includes(a.id)
+                            return (
+                              <button
+                                key={a.id}
+                                className={`appliance-card ${isSelected ? 'selected' : ''}`}
+                                onClick={() => {
+                                  setSelectedAppliances(prev =>
+                                    prev.includes(a.id)
+                                      ? prev.filter(x => x !== a.id)
+                                      : [...prev, a.id]
+                                  )
+                                  setAiTips(null)
+                                }}
+                              >
+                                <span className="appliance-icon">{a.icon}</span>
+                                <span className="appliance-name">{a.name}</span>
+                                <span className="appliance-info">{a.kw >= 1 ? `${a.kw} kW` : `${a.kw * 1000} W`} &middot; {a.durationMin >= 60 ? `${a.durationMin / 60}h` : `${a.durationMin}m`}</span>
+                                {a.flexible && <span className="appliance-tag tag-flexible">Flexible</span>}
+                                {a.alwaysOn && <span className="appliance-tag tag-always">Always On</span>}
+                                {isSelected && <span className="appliance-check">&#10003;</span>}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {selectedAppliances.length > 0 && (
+                  <>
+                    {/* Cost breakdown */}
+                    <div className="sh-cost-overview">
+                      <h3>Your Energy Costs</h3>
+                      <div className="cost-cards">
+                        <div className="cost-card cost-card-daily">
+                          <div className="cost-card-label">Daily Estimate</div>
+                          <div className="cost-card-value">&pound;{dailyCostEstimate.toFixed(2)}</div>
+                          <div className="cost-card-detail">{totalKwh.toFixed(1)} kWh total</div>
+                        </div>
+                        <div className="cost-card cost-card-monthly">
+                          <div className="cost-card-label">Monthly Estimate</div>
+                          <div className="cost-card-value">&pound;{monthlyCost.toFixed(2)}</div>
+                          <div className="cost-card-detail">Based on daily usage</div>
+                        </div>
+                        <div className="cost-card cost-card-yearly">
+                          <div className="cost-card-label">Yearly Estimate</div>
+                          <div className="cost-card-value">&pound;{yearlyCost.toFixed(0)}</div>
+                          <div className="cost-card-detail">Projected annual cost</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI Tips section */}
+                    <div className="ai-tips-section">
+                      <div className="ai-tips-header">
+                        <div className="ai-tips-title">
+                          <span className="ai-sparkle">&#10024;</span>
+                          <h3>AI Energy Insights</h3>
+                        </div>
+                        <button className="ai-tips-btn" onClick={fetchAiTips} disabled={aiTipsLoading}>
+                          {aiTipsLoading ? 'Analysing...' : aiTips ? 'Refresh Tips' : 'Get Personalised Tips'}
+                        </button>
+                      </div>
+                      {aiTipsLoading && (
+                        <div className="ai-tips-loading">
+                          <div className="spinner"></div>
+                          <span>AI is analysing your {selected.length} appliances...</span>
+                        </div>
+                      )}
+                      {aiTips && !aiTipsLoading && (
+                        <div className="ai-tips-grid">
+                          {aiTips.map((tip, i) => (
+                            <div key={i} className="ai-tip-card">
+                              <div className="ai-tip-icon">{tip.icon}</div>
+                              <div className="ai-tip-content">
+                                <div className="ai-tip-title">{tip.title}</div>
+                                <div className="ai-tip-body">{tip.body}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!aiTips && !aiTipsLoading && (
+                        <div className="ai-tips-placeholder">
+                          Click the button above to get AI-powered tips personalised to your selected appliances
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Price timeline */}
+                    <div className="sh-timeline-section">
+                      <h3>Today's Energy Price by Hour</h3>
+                      <p className="sh-timeline-sub">Based on predicted national demand &mdash; green = cheapest, red = most expensive</p>
+                      <div className="sh-timeline">
+                        {chartData.map(h => (
+                          <div key={h.hour} className={`sh-hour-bar ${h.zone} ${h.hour === now ? 'now' : ''}`}>
+                            <div
+                              className="sh-bar-inner"
+                              style={{ height: `${((h.price - 12) / 35) * 100}%` }}
+                            />
+                            <span className="sh-hour-label">{h.hour}</span>
+                            {h.hour === now && <span className="sh-now-marker">NOW</span>}
+                            {h.hour === cheapestHour.hour && (
+                              <span className="sh-best-marker">BEST</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="sh-timeline-legend">
+                        <span className="sh-legend-item"><span className="sh-dot sh-dot-green"></span> Off-peak</span>
+                        <span className="sh-legend-item"><span className="sh-dot sh-dot-amber"></span> Standard</span>
+                        <span className="sh-legend-item"><span className="sh-dot sh-dot-red"></span> Peak</span>
+                      </div>
+                    </div>
+
+                    {/* Per-appliance breakdown */}
+                    <div className="sh-schedule">
+                      <h3>Per-Appliance Breakdown</h3>
+                      <div className="schedule-list">
+                        {selected.map(a => {
+                          const kwh = a.kw * (a.durationMin / 60)
+                          const costAtBest = kwh * cheapestHour.price / 100
+                          const costAtPeak = kwh * expensiveHour.price / 100
+                          const costAtNow = kwh * currentHour.price / 100
+                          const bestH = a.flexible ? cheapestHour.hour : null
+                          return (
+                            <div key={a.id} className="schedule-item">
+                              <span className="schedule-icon">{a.icon}</span>
+                              <div className="schedule-info">
+                                <div className="schedule-name">{a.name}</div>
+                                <div className="schedule-detail">
+                                  {a.kw >= 1 ? `${a.kw} kW` : `${(a.kw * 1000).toFixed(0)} W`} &times; {a.durationMin >= 60 ? `${a.durationMin / 60}h` : `${a.durationMin}min`} = {kwh.toFixed(2)} kWh
+                                </div>
+                              </div>
+                              <div className="schedule-time">
+                                {a.alwaysOn ? (
+                                  <span className="schedule-always">Always on</span>
+                                ) : a.flexible ? (
+                                  <span className="schedule-best">Best: {bestH}:00</span>
+                                ) : (
+                                  <span className="schedule-anytime">Any time</span>
+                                )}
+                              </div>
+                              <div className="schedule-cost">
+                                <span className="schedule-cost-val">&pound;{costAtNow.toFixed(2)}</span>
+                                {a.flexible && <span className="schedule-cost-vs">&pound;{costAtPeak.toFixed(2)} at peak</span>}
+                                {a.flexible && <span className="schedule-cost-save">Save {((costAtPeak - costAtBest) * 100).toFixed(0)}p</span>}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Summary */}
+                    <div className="sh-summary">
+                      <div className="sh-summary-row">
+                        <span>Total daily energy:</span>
+                        <strong>{totalKwh.toFixed(2)} kWh</strong>
+                      </div>
+                      <div className="sh-summary-row">
+                        <span>Cost running now ({currentHour.price.toFixed(1)}p/kWh):</span>
+                        <strong>&pound;{costNow.toFixed(2)}</strong>
+                      </div>
+                      <div className="sh-summary-row">
+                        <span>Cost at peak ({expensiveHour.price.toFixed(1)}p/kWh):</span>
+                        <strong className="sh-peak-cost">&pound;{costPeak.toFixed(2)}</strong>
+                      </div>
+                      <div className="sh-summary-row sh-summary-best">
+                        <span>Cost at cheapest ({cheapestHour.price.toFixed(1)}p/kWh):</span>
+                        <strong>&pound;{costBest.toFixed(2)}</strong>
+                      </div>
+                      {savings > 0 && (
+                        <div className="sh-summary-row sh-summary-saving">
+                          <span>You save by shifting to off-peak:</span>
+                          <strong>&pound;{savings.toFixed(2)} + {Math.round(carbonSaved)}g CO&#8322;</strong>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {selectedAppliances.length === 0 && (
+                  <div className="sh-empty">
+                    <div className="sh-empty-icon">&#9889;</div>
+                    <p>Select appliances above to see your estimated energy costs and get AI-powered insights</p>
+                  </div>
+                )}
+              </>
+            )
+          })()}
+        </div>
+      )}
+
       {/* What-If Section */}
       {activeTab === 'whatif' && (
             <div className="tab-content whatif-tab">
@@ -1536,6 +1897,7 @@ function App() {
                   onClick={() => {
                     setShapModel(m)
                     loadShapData(m)
+                    setShapExplanation(null)
                   }}
                 >
                   {SHAP_MODEL_NAMES[m]}
@@ -1549,6 +1911,7 @@ function App() {
                   className={selectedGranularity === g ? 'active' : ''}
                   onClick={() => {
                     setSelectedGranularity(g)
+                    setShapExplanation(null)
                     setTimeout(() => {
                       loadShapData()
                       loadShapAvailable()
@@ -1635,39 +1998,82 @@ function App() {
                 </div>
               </div>
 
-              {/* Insights */}
-              <div className="shap-insights">
-                <h3>Key Insights</h3>
-                <div className="insight-cards">
-                  <div className="insight-card">
-                    <div className="insight-icon">📊</div>
-                    <div className="insight-text">
-                      <strong>{formatFeatureName(shapData.features?.[0])}</strong> is the most important feature,
-                      contributing {((shapData.importance?.[0] / shapData.importance?.reduce((a,b) => a+b, 0)) * 100).toFixed(1)}% of total importance.
-                    </div>
-                  </div>
-                  <div className="insight-card">
-                    <div className="insight-icon">🔬</div>
-                    <div className="insight-text">
-                      Analysis based on <strong>{shapData.n_samples?.toLocaleString()}</strong> samples
-                      from the {shapData.granularity_name} test set
-                      using <strong>{shapData.model_name || SHAP_MODEL_NAMES[shapModel]}</strong>.
-                    </div>
-                  </div>
-                  <div className="insight-card">
-                    <div className="insight-icon">⚡</div>
-                    <div className="insight-text">
-                      Lag features dominate because electricity demand is highly autocorrelated -
-                      current demand strongly predicts near-future demand.
-                    </div>
-                  </div>
-                  {shapData.note && (
-                    <div className="insight-card">
-                      <div className="insight-icon">ℹ️</div>
-                      <div className="insight-text">{shapData.note}</div>
-                    </div>
-                  )}
+              {/* Quick stats */}
+              <div className="shap-stats-row">
+                <div className="shap-stat">
+                  <div className="shap-stat-value">{shapData.distribution?.length || 0}</div>
+                  <div className="shap-stat-label">Features Analysed</div>
                 </div>
+                <div className="shap-stat">
+                  <div className="shap-stat-value">{shapData.n_samples?.toLocaleString()}</div>
+                  <div className="shap-stat-label">Test Samples</div>
+                </div>
+                <div className="shap-stat">
+                  <div className="shap-stat-value">{formatFeatureName(shapData.features?.[0])}</div>
+                  <div className="shap-stat-label">Most Important Feature</div>
+                </div>
+                <div className="shap-stat">
+                  <div className="shap-stat-value">{((shapData.importance?.[0] / shapData.importance?.reduce((a,b) => a+b, 0)) * 100).toFixed(1)}%</div>
+                  <div className="shap-stat-label">Top Feature Share</div>
+                </div>
+              </div>
+
+              {/* AI Explanation */}
+              <div className="shap-ai-section">
+                <div className="shap-ai-header">
+                  <div className="ai-tips-title">
+                    <span className="ai-sparkle">&#10024;</span>
+                    <h3>AI Interpretation</h3>
+                  </div>
+                  <button
+                    className="ai-tips-btn"
+                    disabled={shapExplainLoading}
+                    onClick={async () => {
+                      setShapExplainLoading(true)
+                      try {
+                        const res = await fetch(`${API_BASE}/shap/explain`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            model_name: SHAP_MODEL_NAMES[shapModel] || shapModel,
+                            granularity: shapData.granularity_name || selectedGranularity,
+                            top_features: shapData.distribution?.slice(0, 10).map(f => ({
+                              name: formatFeatureName(f.feature),
+                              importance: f.importance
+                            })) || [],
+                            n_samples: shapData.n_samples || 0,
+                          })
+                        })
+                        const data = await res.json()
+                        setShapExplanation(data.explanation)
+                      } catch (err) {
+                        console.error('SHAP explain error:', err)
+                      } finally {
+                        setShapExplainLoading(false)
+                      }
+                    }}
+                  >
+                    {shapExplainLoading ? 'Analysing...' : shapExplanation ? 'Regenerate' : 'Explain These Results'}
+                  </button>
+                </div>
+                {shapExplainLoading && (
+                  <div className="ai-tips-loading">
+                    <div className="spinner"></div>
+                    <span>AI is interpreting the SHAP results...</span>
+                  </div>
+                )}
+                {shapExplanation && !shapExplainLoading && (
+                  <div className="shap-explanation">
+                    {shapExplanation.split('\n').filter(p => p.trim()).map((para, i) => (
+                      <p key={i}>{para}</p>
+                    ))}
+                  </div>
+                )}
+                {!shapExplanation && !shapExplainLoading && (
+                  <div className="ai-tips-placeholder">
+                    Click the button to get an AI-powered plain-English explanation of what these SHAP results mean
+                  </div>
+                )}
               </div>
             </div>
           ) : (
